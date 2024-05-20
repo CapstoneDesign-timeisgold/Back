@@ -19,10 +19,11 @@ public class FriendShipService {
     private UserRepository userRepository;
 
     public FriendShip addFriend(FriendRequestDto friendRequestDto) {
-        SiteUser user1 = userRepository.findById(friendRequestDto.getUserId1())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid user ID: " + friendRequestDto.getUserId1()));
-        SiteUser user2 = userRepository.findById(friendRequestDto.getUserId2())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid user ID: " + friendRequestDto.getUserId2()));
+        // 닉네임으로 사용자 찾기
+        SiteUser user1 = userRepository.findByNickname(friendRequestDto.getNickname1())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid username: " + friendRequestDto.getNickname1()));
+        SiteUser user2 = userRepository.findByNickname(friendRequestDto.getNickname2())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid username: " + friendRequestDto.getNickname2()));
 
         FriendShip friendShip = new FriendShip();
         friendShip.setUser1(user1);

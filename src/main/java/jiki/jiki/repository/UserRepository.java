@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<SiteUser, Long> {
     Optional<SiteUser> findByUsername(String username);
+    Optional<SiteUser> findByNickname(String nickname); // 닉네임으로 사용자 찾기
 }
 
