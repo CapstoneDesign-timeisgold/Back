@@ -1,3 +1,5 @@
+//회원가입 dto
+
 package jiki.jiki.dto;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

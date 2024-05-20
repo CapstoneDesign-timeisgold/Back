@@ -1,3 +1,5 @@
+//친구 요청 dto
+
 package jiki.jiki.dto;
 
 import lombok.Data;
