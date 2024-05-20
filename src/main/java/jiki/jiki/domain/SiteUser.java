@@ -34,6 +34,4 @@ public class SiteUser {
     @OneToMany(mappedBy = "user")
     private Set<Participant> participations;
 
-    // Getters and Setters
-
 }

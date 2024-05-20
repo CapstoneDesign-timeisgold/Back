@@ -21,5 +21,4 @@ public class Participant {
 
     private boolean isLate;
 
-    // Getters and Setters
 }

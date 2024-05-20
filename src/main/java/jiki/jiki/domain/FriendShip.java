@@ -22,5 +22,4 @@ public class FriendShip {
     @Enumerated(EnumType.STRING)
     private FriendShipStatus status;
 
-    // Getters and Setters
 }

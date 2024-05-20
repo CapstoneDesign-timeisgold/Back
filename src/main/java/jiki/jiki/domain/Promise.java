@@ -25,5 +25,4 @@ public class Promise {
     @OneToMany(mappedBy = "promise")
     private Set<Participant> participants;
 
-    // Getters and Setters
 }
