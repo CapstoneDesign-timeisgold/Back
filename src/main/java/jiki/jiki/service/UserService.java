@@ -1,6 +1,5 @@
 package jiki.jiki.service;
 
-
 import jiki.jiki.domain.SiteUser;
 import jiki.jiki.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +22,5 @@ public class UserService {
         return user;
     }
 }
-
 
 
