@@ -18,12 +18,25 @@ public class FriendShipController {
     private FriendShipService friendShipService;
 
     @PostMapping("/add")
-    public ResponseEntity<FriendShip> addFriend(@RequestBody FriendRequestDto friendRequestDto) {
-        FriendShip friendShip = friendShipService.addFriend(friendRequestDto);
+    public ResponseEntity<FriendShip> sendFriendRequest(@RequestBody FriendRequestDto friendRequestDto) {
+        FriendShip friendShip = friendShipService.sendFriendRequest(friendRequestDto);
         return ResponseEntity.ok(friendShip);
     }
+
+    @PostMapping("/accept/{id}")
+    public ResponseEntity<String> acceptFriendRequest(@PathVariable Long id) {
+        friendShipService.acceptFriendRequest(id);
+        return ResponseEntity.ok("Friend request accepted");
+    }
+
+    @PostMapping("/decline/{id}")
+    public ResponseEntity<String> declineFriendRequest(@PathVariable Long id) {
+        friendShipService.declineFriendRequest(id);
+        return ResponseEntity.ok("Friend request declined");
+    }
+
     @GetMapping("/friends/{nickname}")
-    public ResponseEntity<Set<FriendDto>> getFriendsByNickname(@PathVariable String nickname) {
+    public ResponseEntity<Set<FriendDto>> getFriendsByNickname(@PathVariable("nickname") String nickname) {
         Set<FriendDto> friends = friendShipService.getFriendsByNickname(nickname);
         return ResponseEntity.ok(friends);
     }
