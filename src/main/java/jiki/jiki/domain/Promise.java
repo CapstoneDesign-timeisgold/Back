@@ -2,8 +2,10 @@ package jiki.jiki.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -14,7 +16,9 @@ public class Promise {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDateTime dateTime;
+    private String Date;
+
+    private String Time;
 
     private String location;
 
@@ -22,7 +26,8 @@ public class Promise {
 
     private String title;
 
-    @OneToMany(mappedBy = "promise")
-    private Set<Participant> participants;
-
+    @OneToMany(mappedBy = "promise", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private Set<Participant> participants = new HashSet<>();
 }
