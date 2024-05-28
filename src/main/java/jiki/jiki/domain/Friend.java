@@ -7,7 +7,7 @@ import lombok.ToString;
 
 @Data
 @Entity
-public class FriendShip {
+public class Friend {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,5 +27,5 @@ public class FriendShip {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private FriendShipStatus status;
+    private FriendStatus status;
 }

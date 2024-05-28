@@ -32,12 +32,12 @@ public class SiteUser {
     @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private Set<FriendShip> friendshipsInitiated = new HashSet<>(); // 사용자가 보낸 친구 요청들
+    private Set<Friend> FriendsInitiated = new HashSet<>(); // 사용자가 보낸 친구 요청들
 
     @OneToMany(mappedBy = "user2", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private Set<FriendShip> friendshipsReceived = new HashSet<>(); // 사용자가 받은 친구 요청들
+    private Set<Friend> FriendsReceived = new HashSet<>(); // 사용자가 받은 친구 요청들
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude

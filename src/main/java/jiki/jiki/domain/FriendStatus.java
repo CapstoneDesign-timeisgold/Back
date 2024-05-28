@@ -1,6 +1,6 @@
 package jiki.jiki.domain;
 
-public enum FriendShipStatus {
+public enum FriendStatus {
     PENDING,
     ACCEPTED,
     DECLINED
