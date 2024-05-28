@@ -1,6 +1,6 @@
 package jiki.jiki.controller;
 
-import jiki.jiki.domain.FriendShip;
+import jiki.jiki.domain.Friend;
 import jiki.jiki.dto.FriendDto;
 import jiki.jiki.dto.FriendRequestDto;
 import jiki.jiki.service.FriendService;
@@ -17,8 +17,8 @@ public class FriendController {
     private final FriendService friendService;
 
     @PostMapping("/friend/add")
-    public ResponseEntity<FriendShip> sendFriendRequest(@RequestHeader("username") String username, @RequestBody FriendRequestDto friendRequestDto) {
-        FriendShip friendShip = friendService.sendFriendRequest(username, friendRequestDto);
+    public ResponseEntity<Friend> sendFriendRequest(@RequestHeader("username") String username, @RequestBody FriendRequestDto friendRequestDto) {
+        Friend friendShip = friendService.sendFriendRequest(username, friendRequestDto);
         return ResponseEntity.ok(friendShip);
     }
 
