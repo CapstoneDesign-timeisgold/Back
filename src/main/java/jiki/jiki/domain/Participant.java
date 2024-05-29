@@ -25,5 +25,9 @@ public class Participant {
     @ToString.Exclude
     private SiteUser user;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ParticipantStatus status;
+
     private boolean isLate;
 }
