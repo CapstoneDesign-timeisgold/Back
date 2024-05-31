@@ -11,5 +11,6 @@ public class PromiseDetailDto {
     private String time;
     private String location;
     private int penalty;
-    private Set<ParticipantDetailDto> participants;
+    private Set<String> participantUsernames;
+    private Long promiseId;
 }

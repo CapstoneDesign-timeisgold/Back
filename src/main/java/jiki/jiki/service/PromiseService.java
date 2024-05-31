@@ -128,11 +128,12 @@ public class PromiseService {
             dto.setTitle(promise.getTitle());
             dto.setDate(promise.getDate());
             dto.setTime(promise.getTime());
+            dto.setPromiseId(promise.getId()); // promiseId 값 설정
             return dto;
         }).collect(Collectors.toList());
     }
 
-    //약속 세부사항
+    // 약속 세부사항
     public PromiseDetailDto getPromiseDetail(Long promiseId, String username) {
         SiteUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -149,21 +150,18 @@ public class PromiseService {
         }
 
         PromiseDetailDto dto = new PromiseDetailDto();
+        dto.setPromiseId(promiseId); // promiseId 설정
         dto.setTitle(promise.getTitle());
         dto.setDate(promise.getDate());
         dto.setTime(promise.getTime());
         dto.setLocation(promise.getLocation());
         dto.setPenalty(promise.getPenalty());
 
-        Set<ParticipantDetailDto> participantDtos = promise.getParticipants().stream().map(participant -> {
-            ParticipantDetailDto participantDto = new ParticipantDetailDto();
-            participantDto.setUsername(participant.getUser().getUsername());
-            participantDto.setLate(participant.isLate());
-            participantDto.setStatus(participant.getStatus());
-            return participantDto;
-        }).collect(Collectors.toSet());
+        Set<String> participantUsernames = promise.getParticipants().stream()
+                .map(participant -> participant.getUser().getUsername())
+                .collect(Collectors.toSet());
 
-        dto.setParticipants(participantDtos);
+        dto.setParticipantUsernames(participantUsernames);
         return dto;
     }
 }

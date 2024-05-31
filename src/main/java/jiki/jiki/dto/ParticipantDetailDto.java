@@ -6,6 +6,4 @@ import lombok.Data;
 @Data
 public class ParticipantDetailDto {
     private String username;
-    private boolean isLate;
-    private ParticipantStatus status;
 }

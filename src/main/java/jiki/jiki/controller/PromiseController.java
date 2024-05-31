@@ -51,7 +51,7 @@ public class PromiseController {
 
     //약속 세부사항
     @GetMapping("/promise/{promiseId}")
-    public ResponseEntity<PromiseDetailDto> getPromiseDetail(@PathVariable Long promiseId, @RequestHeader("username") String username) {
+    public ResponseEntity<PromiseDetailDto> getPromiseDetail(@PathVariable("promiseId") Long promiseId, @RequestHeader("username") String username) {
         PromiseDetailDto promiseDetail = promiseService.getPromiseDetail(promiseId, username);
         return ResponseEntity.ok(promiseDetail);
     }
