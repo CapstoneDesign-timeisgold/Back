@@ -53,6 +53,56 @@ public class PromiseService {
         return promise;
     }
 
+    //약속 목록
+    public List<PromiseListDto> getPromiseList(String username) {
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        List<Promise> promises = promiseRepository.findByParticipants_User(user);
+
+        return promises.stream().map(promise -> {
+            PromiseListDto dto = new PromiseListDto();
+            dto.setTitle(promise.getTitle());
+            dto.setDate(promise.getDate());
+            dto.setTime(promise.getTime());
+            dto.setPromiseId(promise.getId()); // promiseId 값 설정
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    // 약속 세부사항
+    public PromiseDetailDto getPromiseDetail(Long promiseId, String username) {
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        Promise promise = promiseRepository.findById(promiseId)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
+
+        // Check if user is a participant of the promise
+        boolean isParticipant = promise.getParticipants().stream()
+                .anyMatch(participant -> participant.getUser().equals(user));
+
+        if (!isParticipant) {
+            throw new IllegalArgumentException("User not authorized to view this promise detail");
+        }
+
+        PromiseDetailDto dto = new PromiseDetailDto();
+        dto.setPromiseId(promiseId); // promiseId 설정
+        dto.setTitle(promise.getTitle());
+        dto.setDate(promise.getDate());
+        dto.setTime(promise.getTime());
+        dto.setLocation(promise.getLocation());
+        dto.setPenalty(promise.getPenalty());
+
+        Set<String> participantUsernames = promise.getParticipants().stream()
+                .map(participant -> participant.getUser().getUsername())
+                .collect(Collectors.toSet());
+
+        dto.setParticipantUsernames(participantUsernames);
+        return dto;
+    }
+
+    //약속초대
     public void inviteParticipant(String username, ParticipantDto participantDto) {
         Promise promise = promiseRepository.findById(participantDto.getPromiseId())
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + participantDto.getPromiseId()));
@@ -116,52 +166,5 @@ public class PromiseService {
         }
     }
 
-    //약속 목록
-    public List<PromiseListDto> getPromiseList(String username) {
-        SiteUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        List<Promise> promises = promiseRepository.findByParticipants_User(user);
-
-        return promises.stream().map(promise -> {
-            PromiseListDto dto = new PromiseListDto();
-            dto.setTitle(promise.getTitle());
-            dto.setDate(promise.getDate());
-            dto.setTime(promise.getTime());
-            dto.setPromiseId(promise.getId()); // promiseId 값 설정
-            return dto;
-        }).collect(Collectors.toList());
-    }
-
-    // 약속 세부사항
-    public PromiseDetailDto getPromiseDetail(Long promiseId, String username) {
-        SiteUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        Promise promise = promiseRepository.findById(promiseId)
-                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
-
-        // Check if user is a participant of the promise
-        boolean isParticipant = promise.getParticipants().stream()
-                .anyMatch(participant -> participant.getUser().equals(user));
-
-        if (!isParticipant) {
-            throw new IllegalArgumentException("User not authorized to view this promise detail");
-        }
-
-        PromiseDetailDto dto = new PromiseDetailDto();
-        dto.setPromiseId(promiseId); // promiseId 설정
-        dto.setTitle(promise.getTitle());
-        dto.setDate(promise.getDate());
-        dto.setTime(promise.getTime());
-        dto.setLocation(promise.getLocation());
-        dto.setPenalty(promise.getPenalty());
-
-        Set<String> participantUsernames = promise.getParticipants().stream()
-                .map(participant -> participant.getUser().getUsername())
-                .collect(Collectors.toSet());
-
-        dto.setParticipantUsernames(participantUsernames);
-        return dto;
-    }
 }
