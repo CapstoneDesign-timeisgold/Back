@@ -1,6 +1,7 @@
 package jiki.jiki.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import jiki.jiki.domain.Participant;
 import jiki.jiki.domain.ParticipantStatus;
 import jiki.jiki.domain.Promise;
@@ -27,6 +28,7 @@ public class PromiseService {
     private final ParticipantRepository participantRepository;
 
     //약속 생성
+    @Transactional
     public Promise createPromise(PromiseCreateDto promiseCreateDto) {
         SiteUser creator = userRepository.findByUsername(promiseCreateDto.getCreatorUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -45,6 +47,7 @@ public class PromiseService {
         creatorParticipant.setPromise(promise);
         creatorParticipant.setUser(creator);
         creatorParticipant.setLate(false);
+        creatorParticipant.setStatus(ParticipantStatus.ACCEPTED);
         participantRepository.save(creatorParticipant);
 
         return promise;
@@ -113,6 +116,7 @@ public class PromiseService {
         }
     }
 
+    //약속 목록
     public List<PromiseListDto> getPromiseList(String username) {
         SiteUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));

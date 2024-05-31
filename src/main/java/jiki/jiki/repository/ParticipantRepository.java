@@ -10,5 +10,5 @@ import java.util.Optional;
 
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
     Optional<Participant> findByPromiseAndUser(Promise promise, SiteUser user);
-    List<Promise> findByParticipants_User(SiteUser user);
+    List<Participant> findByUser(SiteUser user);
 }

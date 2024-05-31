@@ -26,7 +26,7 @@ public class Participant {
     private SiteUser user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true) // null 값을 허용하도록 변경
     private ParticipantStatus status;
 
     private boolean isLate;
