@@ -50,9 +50,9 @@ public class FriendService {
 
     private FriendRequestListDto mapToFriendRequestListDto(Friend friend) {
         FriendRequestListDto friendRequestListDto = new FriendRequestListDto();
-        friendRequestListDto.setFriendId(friend.getId()); // friendId 설정
-        friendRequestListDto.setUsername(friend.getUser1().getUsername()); // 친구 요청 보낸 사용자의 username 설정
-        friendRequestListDto.setUsername2(friend.getUser2().getUsername()); // 친구 요청 받은 사용자의 username 설정
+        friendRequestListDto.setFriendId(friend.getId());
+        friendRequestListDto.setUsername(friend.getUser1().getUsername());
+        friendRequestListDto.setUsername2(friend.getUser2().getUsername());
         return friendRequestListDto;
     }
 
@@ -93,14 +93,19 @@ public class FriendService {
     public Set<FriendDto> getFriends(String username) {
         return friendRepository.findByUser1UsernameOrUser2UsernameAndStatus(username, username, FriendStatus.ACCEPTED)
                 .stream()
-                .map(this::mapToFriendDto)
+                .map(friend -> mapToFriendDto(friend, username))
                 .collect(Collectors.toSet());
     }
 
-    private FriendDto mapToFriendDto(Friend friend) {
+    private FriendDto mapToFriendDto(Friend friend, String requestUsername) {
         FriendDto friendDto = new FriendDto();
-        friendDto.setUsername(friend.getUser1().getUsername());
-        friendDto.setUsername2(friend.getUser2().getUsername());
+        if (friend.getUser1().getUsername().equals(requestUsername)) {
+            friendDto.setUsername(requestUsername);
+            friendDto.setUsername2(friend.getUser2().getUsername());
+        } else {
+            friendDto.setUsername(requestUsername);
+            friendDto.setUsername2(friend.getUser1().getUsername());
+        }
         friendDto.setStatus(friend.getStatus().name());
         return friendDto;
     }
