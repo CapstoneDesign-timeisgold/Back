@@ -1,8 +1,8 @@
 package jiki.jiki.controller;
 
-import jiki.jiki.domain.Friend;
 import jiki.jiki.dto.FriendDto;
 import jiki.jiki.dto.FriendRequestDto;
+import jiki.jiki.dto.FriendRequestListDto;
 import jiki.jiki.service.FriendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,27 +16,33 @@ public class FriendController {
 
     private final FriendService friendService;
 
-    @PostMapping("/friend/add")
-    public ResponseEntity<Friend> sendFriendRequest(@RequestHeader("username") String username, @RequestBody FriendRequestDto friendRequestDto) {
-        Friend friendShip = friendService.sendFriendRequest(username, friendRequestDto);
-        return ResponseEntity.ok(friendShip);
+    @PostMapping("/friend")
+    public ResponseEntity<String> sendFriendRequest(@RequestBody FriendRequestDto friendRequestDto) {
+        friendService.sendFriendRequest(friendRequestDto);
+        return ResponseEntity.ok("Friend request sent");
     }
 
-    @PostMapping("friend/accept/{id}")
-    public ResponseEntity<String> acceptFriendRequest(@RequestHeader("username") String username, @PathVariable Long id) {
-        friendService.acceptFriendRequest(username, id);
+    @GetMapping("/friend/requests/{username}")
+    public ResponseEntity<Set<FriendRequestListDto>> getFriendRequests(@PathVariable("username") String username) {
+        Set<FriendRequestListDto> friendRequests = friendService.getFriendRequests(username);
+        return ResponseEntity.ok(friendRequests);
+    }
+
+    @PostMapping("/friend/accept/{friendId}")
+    public ResponseEntity<String> acceptFriendRequest(@PathVariable("friendId") Long friendId) {
+        friendService.acceptFriendRequest(friendId);
         return ResponseEntity.ok("Friend request accepted");
     }
 
-    @PostMapping("friend/decline/{id}")
-    public ResponseEntity<String> declineFriendRequest(@RequestHeader("username") String username, @PathVariable Long id) {
-        friendService.declineFriendRequest(username, id);
+    @PostMapping("/friend/decline/{friendId}")
+    public ResponseEntity<String> declineFriendRequest(@PathVariable("friendId") Long friendId) {
+        friendService.declineFriendRequest(friendId);
         return ResponseEntity.ok("Friend request declined");
     }
 
-    @GetMapping("/friend/{username}")
-    public ResponseEntity<Set<FriendDto>> getFriendsByUsername(@PathVariable("username") String username) {
-        Set<FriendDto> friends = friendService.getFriendsByUsername(username);
+    @GetMapping("/friend/list/{username}")
+    public ResponseEntity<Set<FriendDto>> getFriends(@PathVariable("username") String username) {
+        Set<FriendDto> friends = friendService.getFriends(username);
         return ResponseEntity.ok(friends);
     }
 }
