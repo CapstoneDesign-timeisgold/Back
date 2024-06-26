@@ -14,35 +14,35 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        //회원가입
+        // CSRF 보호 비활성화
         http.csrf().disable();
+
+        // 인증 및 권한 부여 설정
         http
-                .authorizeRequests((authorizeHttpRequests) -> authorizeHttpRequests
+                .authorizeRequests(authorizeRequests -> authorizeRequests
                         .requestMatchers(new AntPathRequestMatcher("/**")).permitAll())
-                //로그아웃
-                .logout((logout) -> logout
+                .headers(headers -> headers
+                        .frameOptions().disable()) // webview 설정
+                // 로그아웃 설정
+                .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/user/logout"))
                         .logoutSuccessUrl("/")
-                        .invalidateHttpSession(true))
-        ;
-        return http.build();
+                        .invalidateHttpSession(true));
 
+        return http.build();
     }
 
-    //비밀번호 암호화 하기 위해 필요
+    // 비밀번호 암호화를 위해 필요한 Bean 설정
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 }
-
-
-
