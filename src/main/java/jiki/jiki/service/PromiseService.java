@@ -2,10 +2,7 @@ package jiki.jiki.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import jiki.jiki.domain.Participant;
-import jiki.jiki.domain.ParticipantStatus;
-import jiki.jiki.domain.Promise;
-import jiki.jiki.domain.SiteUser;
+import jiki.jiki.domain.*;
 import jiki.jiki.dto.*;
 import jiki.jiki.repository.ParticipantRepository;
 import jiki.jiki.repository.PromiseRepository;
@@ -37,7 +34,8 @@ public class PromiseService {
         promise.setTitle(promiseCreateDto.getTitle());
         promise.setDate(promiseCreateDto.getDate());
         promise.setTime(promiseCreateDto.getTime());
-        promise.setLocation(promiseCreateDto.getLocation());
+        promise.setLatitude(promiseCreateDto.getLatitude());
+        promise.setLongitude(promiseCreateDto.getLongitude());
         promise.setPenalty(promiseCreateDto.getPenalty());
 
         promise = promiseRepository.save(promise);
@@ -91,7 +89,8 @@ public class PromiseService {
         dto.setTitle(promise.getTitle());
         dto.setDate(promise.getDate());
         dto.setTime(promise.getTime());
-        dto.setLocation(promise.getLocation());
+        dto.setLongitude(promiseId);
+        dto.setLatitude(promiseId);
         dto.setPenalty(promise.getPenalty());
 
         Set<String> participantUsernames = promise.getParticipants().stream()
@@ -165,6 +164,24 @@ public class PromiseService {
             throw new IllegalStateException("Cannot decline promise invitation: Participant status is not pending");
         }
     }
+    //약속 삭제
+    @Transactional
+    public void deletePromise(Long promiseId, String username) {
+        Promise promise = promiseRepository.findById(promiseId)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
 
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // 인증된 사용자가 promise의 생성자인지 확인
+        boolean isCreator = promise.getParticipants().stream()
+                .anyMatch(participant -> participant.getUser().equals(user) && participant.getStatus() == ParticipantStatus.ACCEPTED);
+
+        if (!isCreator) {
+            throw new IllegalArgumentException("User not authorized to delete this promise");
+        }
+
+        promiseRepository.delete(promise);
+    }
 
 }

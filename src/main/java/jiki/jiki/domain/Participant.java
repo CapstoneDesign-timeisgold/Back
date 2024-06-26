@@ -17,17 +17,17 @@ public class Participant {
     @JoinColumn(name = "promise_id")
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private Promise promise;
+    private Promise promise;  // 약속 정보
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private SiteUser user;
+    private SiteUser user;  // 사용자 정보
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true) // null 값을 허용하도록 변경
-    private ParticipantStatus status;
+    @Column(nullable = true)
+    private ParticipantStatus status;  // 참여 상태
 
-    private boolean isLate;
+    private boolean isLate;  // 지각 여부
 }
