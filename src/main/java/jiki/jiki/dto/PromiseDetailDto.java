@@ -9,7 +9,8 @@ public class PromiseDetailDto {
     private String title;
     private String date;
     private String time;
-    private String location;
+    private double latitude;
+    private double longitude;
     private int penalty;
     private Set<String> participantUsernames;
     private Long promiseId;

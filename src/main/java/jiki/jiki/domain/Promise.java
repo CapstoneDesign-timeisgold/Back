@@ -16,15 +16,13 @@ public class Promise {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String Date;
-
-    private String Time;
-
-    private String location;
-
+    private String date;
+    private String time;
     private int penalty;
-
     private String title;
+    private double latitude;
+    private double longitude;
+
 
     @OneToMany(mappedBy = "promise", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
