@@ -78,6 +78,7 @@ public class PromiseService {
                     dto.setDate(promise.getDate());
                     dto.setTime(promise.getTime());
                     dto.setPromiseId(promise.getId());
+                    dto.setCreatorUsername(promise.getCreator().getUsername());
                     return dto;
                 }).collect(Collectors.toList());
     }
