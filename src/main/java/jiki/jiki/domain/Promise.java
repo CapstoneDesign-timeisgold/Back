@@ -23,6 +23,11 @@ public class Promise {
     private double latitude;
     private double longitude;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private SiteUser creator;  // 약속 생성자
 
     @OneToMany(mappedBy = "promise", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude

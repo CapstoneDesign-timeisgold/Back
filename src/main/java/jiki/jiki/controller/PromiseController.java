@@ -1,16 +1,13 @@
 package jiki.jiki.controller;
 
-import jiki.jiki.domain.Promise;
-import jiki.jiki.dto.ParticipantDto;
-import jiki.jiki.dto.PromiseCreateDto;
-import jiki.jiki.dto.PromiseDetailDto;
-import jiki.jiki.dto.PromiseListDto;
+import jiki.jiki.dto.*;
 import jiki.jiki.service.PromiseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,48 +16,54 @@ public class PromiseController {
     private final PromiseService promiseService;
 
     @PostMapping("/promise")
-    public ResponseEntity<Promise> createPromise(@RequestBody PromiseCreateDto promiseCreateDto) {
-        Promise promise = promiseService.createPromise(promiseCreateDto);
+    public ResponseEntity<PromiseDetailDto> createPromise(@RequestBody PromiseCreateDto promiseCreateDto) {
+        PromiseDetailDto promise = promiseService.createPromise(promiseCreateDto);
         return ResponseEntity.ok(promise);
     }
 
-    @PostMapping("/promise/invite")
-    public ResponseEntity<String> inviteFriends(@RequestHeader("username") String username, @RequestBody ParticipantDto participantDto) {
-        promiseService.inviteParticipant(username, participantDto);
+    @PostMapping("/promise/invitation")
+    public ResponseEntity<String> inviteFriends(@RequestHeader("username") String hostUsername, @RequestBody ParticipantRequestDto participantRequestDto) {
+        promiseService.inviteParticipant(hostUsername, participantRequestDto);
         return ResponseEntity.ok("Friends invited to the promise");
     }
 
+    // 약속 초대 요청 목록 조회
+    @GetMapping("/promise/invitation/{username}")
+    public ResponseEntity<Set<ParticipantRequestListDto>> getPromiseInvitations(@PathVariable("username") String guestUsername) {
+        Set<ParticipantRequestListDto> invitations = promiseService.getPromiseInvitations(guestUsername);
+        return ResponseEntity.ok(invitations);
+    }
+
     @PostMapping("/promise/accept/{participantId}")
-    public ResponseEntity<String> acceptPromiseInvitation(@RequestHeader("username") String username, @PathVariable Long participantId) {
-        promiseService.acceptPromiseInvitation(username, participantId);
-        return ResponseEntity.ok("Promise invitation accepted");
-    }
-
-    @PostMapping("/promise/decline/{participantId}")
-    public ResponseEntity<String> declinePromiseInvitation(@RequestHeader("username") String username, @PathVariable Long participantId) {
-        promiseService.declinePromiseInvitation(username, participantId);
-        return ResponseEntity.ok("Promise invitation declined");
-    }
-
-    //약속 리스트
-    @GetMapping("/promise")
-    public ResponseEntity<List<PromiseListDto>> getPromiseList(@RequestHeader("username") String username) {
-        List<PromiseListDto> promises = promiseService.getPromiseList(username);
-        return ResponseEntity.ok(promises);
-    }
-
-    //약속 상세보기
-    @GetMapping("/promise/{promiseId}")
-    public ResponseEntity<PromiseDetailDto> getPromiseDetail(@PathVariable("promiseId") Long promiseId, @RequestHeader("username") String username) {
-        PromiseDetailDto promiseDetail = promiseService.getPromiseDetail(promiseId, username);
+    public ResponseEntity<PromiseDetailDto> acceptPromiseInvitation(@RequestHeader("username") String guestUsername, @PathVariable("participantId") Long participantId) {
+        PromiseDetailDto promiseDetail = promiseService.acceptPromiseInvitation(guestUsername, participantId);
         return ResponseEntity.ok(promiseDetail);
     }
 
-    //약속 삭제
-    @DeleteMapping("/promise/{promiseId}")
-    public ResponseEntity<String> deletePromise(@PathVariable Long promiseId, @RequestHeader("username") String username) {
-        promiseService.deletePromise(promiseId, username);
-        return ResponseEntity.ok("Promise deleted successfully");
+    @PostMapping("/promise/decline/{participantId}")
+    public ResponseEntity<String> declinePromiseInvitation(@RequestHeader("username") String guestUsername, @PathVariable("participantId") Long participantId) {
+        promiseService.declinePromiseInvitation(guestUsername, participantId);
+        return ResponseEntity.ok("Promise invitation declined");
     }
 
+    // 약속 리스트
+    @GetMapping("/promise")
+    public ResponseEntity<List<PromiseListDto>> getPromiseList(@RequestHeader("username") String guestUsername) {
+        List<PromiseListDto> promises = promiseService.getPromiseList(guestUsername);
+        return ResponseEntity.ok(promises);
+    }
+
+    // 약속 상세보기
+    @GetMapping("/promise/{promiseId}")
+    public ResponseEntity<PromiseDetailDto> getPromiseDetail(@PathVariable("promiseId") Long promiseId, @RequestHeader("username") String guestUsername) {
+        PromiseDetailDto promiseDetail = promiseService.getPromiseDetail(promiseId, guestUsername);
+        return ResponseEntity.ok(promiseDetail);
+    }
+
+    // 약속 삭제
+    @DeleteMapping("/promise/{promiseId}")
+    public ResponseEntity<String> deletePromise(@PathVariable("promiseId") Long promiseId, @RequestHeader("username") String hostUsername) {
+        promiseService.deletePromise(promiseId, hostUsername);
+        return ResponseEntity.ok("Promise deleted successfully");
+    }
 }

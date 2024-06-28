@@ -56,6 +56,7 @@ public class FriendService {
         return friendRequestListDto;
     }
 
+    //친구 수락
     @Transactional
     public void acceptFriendRequest(Long friendId) {
         Friend friend = friendRepository.findById(friendId)
@@ -64,6 +65,7 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
+    //친구 거절
     @Transactional
     public void declineFriendRequest(Long friendId) {
         Friend friend = friendRepository.findById(friendId)
@@ -71,6 +73,7 @@ public class FriendService {
         friend.setStatus(FriendStatus.DECLINED);
         friendRepository.save(friend);
     }
+
 
     @Transactional(readOnly = true)
     public Set<FriendResponseDto> getFriendRequestsDto(String username) {

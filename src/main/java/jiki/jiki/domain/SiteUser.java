@@ -39,9 +39,13 @@ public class SiteUser {
     @ToString.Exclude
     private Set<Friend> FriendsReceived = new HashSet<>(); // 사용자가 받은 친구 요청들
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "host", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private Set<Participant> participations = new HashSet<>();
+    private Set<Participant> hostedParticipations = new HashSet<>(); // 사용자가 호스트인 참가자들
 
+    @OneToMany(mappedBy = "guest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private Set<Participant> guestParticipations = new HashSet<>(); // 사용자가 게스트인 참가자들
 }

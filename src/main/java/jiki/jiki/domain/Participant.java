@@ -20,10 +20,16 @@ public class Participant {
     private Promise promise;  // 약속 정보
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "host_id")
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private SiteUser user;  // 사용자 정보
+    private SiteUser host;  // 초대한 사람
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private SiteUser guest;  // 초대받은 사람
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)

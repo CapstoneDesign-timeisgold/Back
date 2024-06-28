@@ -11,23 +11,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class PromiseService {
 
     private final PromiseRepository promiseRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
 
-    //약속 생성
     @Transactional
-    public Promise createPromise(PromiseCreateDto promiseCreateDto) {
-        SiteUser creator = userRepository.findByUsername(promiseCreateDto.getCreatorUsername())
+    public PromiseDetailDto createPromise(PromiseCreateDto promiseCreateDto) {
+        SiteUser host = userRepository.findByUsername(promiseCreateDto.getCreatorUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         Promise promise = new Promise();
@@ -37,126 +35,154 @@ public class PromiseService {
         promise.setLatitude(promiseCreateDto.getLatitude());
         promise.setLongitude(promiseCreateDto.getLongitude());
         promise.setPenalty(promiseCreateDto.getPenalty());
+        promise.setCreator(host);
 
         promise = promiseRepository.save(promise);
 
-        // 생성자를 참가자로 추가
-        Participant creatorParticipant = new Participant();
-        creatorParticipant.setPromise(promise);
-        creatorParticipant.setUser(creator);
-        creatorParticipant.setLate(false);
-        creatorParticipant.setStatus(ParticipantStatus.ACCEPTED);
-        participantRepository.save(creatorParticipant);
+        Participant hostParticipant = new Participant();
+        hostParticipant.setPromise(promise);
+        hostParticipant.setGuest(host);
+        hostParticipant.setHost(host);
+        hostParticipant.setLate(false);
+        hostParticipant.setStatus(ParticipantStatus.ACCEPTED);
+        participantRepository.save(hostParticipant);
 
-        return promise;
+        promise.getParticipants().add(hostParticipant);
+
+        // DTO 변환
+        PromiseDetailDto dto = new PromiseDetailDto();
+        dto.setPromiseId(promise.getId());
+        dto.setTitle(promise.getTitle());
+        dto.setDate(promise.getDate());
+        dto.setTime(promise.getTime());
+        dto.setLatitude(promise.getLatitude());
+        dto.setLongitude(promise.getLongitude());
+        dto.setPenalty(promise.getPenalty());
+        dto.setParticipantUsernames(Set.of(host.getUsername()));
+
+        return dto;
     }
 
-    //약속 목록
-    public List<PromiseListDto> getPromiseList(String username) {
-        SiteUser user = userRepository.findByUsername(username)
+    public List<PromiseListDto> getPromiseList(String guestUsername) {
+        SiteUser guest = userRepository.findByUsername(guestUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        List<Promise> promises = promiseRepository.findByParticipants_User(user);
+        List<Participant> participants = participantRepository.findByGuest(guest);
 
-        return promises.stream().map(promise -> {
-            PromiseListDto dto = new PromiseListDto();
-            dto.setTitle(promise.getTitle());
-            dto.setDate(promise.getDate());
-            dto.setTime(promise.getTime());
-            dto.setPromiseId(promise.getId()); // promiseId 값 설정
-            return dto;
-        }).collect(Collectors.toList());
+        return participants.stream()
+                .filter(participant -> participant.getStatus() == ParticipantStatus.ACCEPTED)
+                .map(participant -> {
+                    Promise promise = participant.getPromise();
+                    PromiseListDto dto = new PromiseListDto();
+                    dto.setTitle(promise.getTitle());
+                    dto.setDate(promise.getDate());
+                    dto.setTime(promise.getTime());
+                    dto.setPromiseId(promise.getId());
+                    return dto;
+                }).collect(Collectors.toList());
     }
 
-    // 약속 세부사항
-    public PromiseDetailDto getPromiseDetail(Long promiseId, String username) {
-        SiteUser user = userRepository.findByUsername(username)
+    @Transactional
+    public PromiseDetailDto getPromiseDetail(Long promiseId, String guestUsername) {
+        SiteUser guest = userRepository.findByUsername(guestUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
 
-        // Check if user is a participant of the promise
         boolean isParticipant = promise.getParticipants().stream()
-                .anyMatch(participant -> participant.getUser().equals(user));
+                .anyMatch(participant -> participant.getGuest().equals(guest));
 
         if (!isParticipant) {
             throw new IllegalArgumentException("User not authorized to view this promise detail");
         }
 
         PromiseDetailDto dto = new PromiseDetailDto();
-        dto.setPromiseId(promiseId); // promiseId 설정
+        dto.setPromiseId(promiseId);
         dto.setTitle(promise.getTitle());
         dto.setDate(promise.getDate());
         dto.setTime(promise.getTime());
-        dto.setLongitude(promiseId);
-        dto.setLatitude(promiseId);
+        dto.setLongitude(promise.getLongitude());
+        dto.setLatitude(promise.getLatitude());
         dto.setPenalty(promise.getPenalty());
 
         Set<String> participantUsernames = promise.getParticipants().stream()
-                .map(participant -> participant.getUser().getUsername())
+                .map(participant -> participant.getGuest().getUsername())
                 .collect(Collectors.toSet());
 
         dto.setParticipantUsernames(participantUsernames);
         return dto;
     }
 
-    //약속초대
-    public void inviteParticipant(String username, ParticipantDto participantDto) {
-        Promise promise = promiseRepository.findById(participantDto.getPromiseId())
-                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + participantDto.getPromiseId()));
+    public void inviteParticipant(String hostUsername, ParticipantRequestDto participantRequestDto) {
+        Promise promise = promiseRepository.findById(participantRequestDto.getPromiseId())
+                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + participantRequestDto.getPromiseId()));
 
-        // 인증된 사용자가 promise의 생성자인지 확인
-        Participant creatorParticipant = participantRepository.findByPromiseAndUser(promise, userRepository.findByUsername(username)
-                        .orElseThrow(() -> new EntityNotFoundException("Invalid username: " + username)))
-                .orElseThrow(() -> new IllegalArgumentException("User not authorized to invite friends to this promise"));
+        SiteUser host = userRepository.findByUsername(hostUsername)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid username: " + hostUsername));
 
-        Set<Participant> participants = new HashSet<>();
-
-        for (String friendUsername : participantDto.getFriendUsernames()) {
-            SiteUser friend = userRepository.findByUsername(friendUsername)
-                    .orElseThrow(() -> new EntityNotFoundException("Invalid friend username: " + friendUsername));
-
-            Participant participant = new Participant();
-            participant.setPromise(promise);
-            participant.setUser(friend);
-            participant.setLate(false);
-            participants.add(participant);
+        if (!promise.getCreator().equals(host)) {
+            throw new IllegalArgumentException("User not authorized to invite friends to this promise");
         }
 
-        participantRepository.saveAll(participants);
+        SiteUser guest = userRepository.findByUsername(participantRequestDto.getGuestUsername())
+                .orElseThrow(() -> new EntityNotFoundException("Invalid guest username: " + participantRequestDto.getGuestUsername()));
+
+        Participant participant = new Participant();
+        participant.setPromise(promise);
+        participant.setGuest(guest);
+        participant.setHost(host);
+        participant.setLate(false);
+        participant.setStatus(ParticipantStatus.PENDING);
+
+        participantRepository.save(participant);
+        promise.getParticipants().add(participant);
     }
 
-    // 약속 수락 로직
-    public void acceptPromiseInvitation(String username, Long participantId) {
+    @Transactional
+    public Set<ParticipantRequestListDto> getPromiseInvitations(String guestUsername) {
+        SiteUser guest = userRepository.findByUsername(guestUsername)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return participantRepository.findByGuestAndStatus(guest, ParticipantStatus.PENDING)
+                .stream()
+                .map(participant -> {
+                    ParticipantRequestListDto dto = new ParticipantRequestListDto();
+                    dto.setPromiseId(participant.getPromise().getId());
+                    dto.setHostUsername(participant.getHost().getUsername());
+                    dto.setGuestUsername(participant.getGuest().getUsername());
+                    dto.setParticipantId(participant.getId());
+                    return dto;
+                })
+                .collect(Collectors.toSet());
+    }
+
+    public PromiseDetailDto acceptPromiseInvitation(String guestUsername, Long participantId) {
         Participant participant = participantRepository.findById(participantId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + participantId));
 
-        // 인증된 사용자가 해당 약속의 초대를 수락할 권한이 있는지 확인
-        if (!participant.getUser().getUsername().equals(username)) {
+        if (!participant.getGuest().getUsername().equals(guestUsername)) {
             throw new IllegalArgumentException("User not authorized to accept this promise invitation");
         }
 
-        // 참여 상태가 "대기"인지 확인
         if (participant.getStatus() == ParticipantStatus.PENDING) {
             participant.setStatus(ParticipantStatus.ACCEPTED);
             participantRepository.save(participant);
         } else {
             throw new IllegalStateException("Cannot accept promise invitation: Participant status is not pending");
         }
+
+        return getPromiseDetail(participant.getPromise().getId(), guestUsername);
     }
 
-    // 약속 거절 로직
-    public void declinePromiseInvitation(String username, Long participantId) {
+    public void declinePromiseInvitation(String guestUsername, Long participantId) {
         Participant participant = participantRepository.findById(participantId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + participantId));
 
-        // 인증된 사용자가 해당 약속의 초대를 거절할 권한이 있는지 확인
-        if (!participant.getUser().getUsername().equals(username)) {
+        if (!participant.getGuest().getUsername().equals(guestUsername)) {
             throw new IllegalArgumentException("User not authorized to decline this promise invitation");
         }
 
-        // 참여 상태가 "대기"인지 확인
         if (participant.getStatus() == ParticipantStatus.PENDING) {
             participant.setStatus(ParticipantStatus.DECLINED);
             participantRepository.save(participant);
@@ -164,24 +190,19 @@ public class PromiseService {
             throw new IllegalStateException("Cannot decline promise invitation: Participant status is not pending");
         }
     }
-    //약속 삭제
+
     @Transactional
-    public void deletePromise(Long promiseId, String username) {
+    public void deletePromise(Long promiseId, String hostUsername) {
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
 
-        SiteUser user = userRepository.findByUsername(username)
+        SiteUser host = userRepository.findByUsername(hostUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        // 인증된 사용자가 promise의 생성자인지 확인
-        boolean isCreator = promise.getParticipants().stream()
-                .anyMatch(participant -> participant.getUser().equals(user) && participant.getStatus() == ParticipantStatus.ACCEPTED);
-
-        if (!isCreator) {
+        if (!promise.getCreator().equals(host)) {
             throw new IllegalArgumentException("User not authorized to delete this promise");
         }
 
         promiseRepository.delete(promise);
     }
-
 }
