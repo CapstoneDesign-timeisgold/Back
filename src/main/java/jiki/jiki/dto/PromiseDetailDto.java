@@ -14,5 +14,5 @@ public class PromiseDetailDto {
     private int penalty;
     private Set<String> participantUsernames;
     private Long promiseId;
-    private Long participantId;
+    private Set<Long> participantIds;
 }

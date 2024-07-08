@@ -94,10 +94,12 @@ public class PromiseService {
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
 
-        Participant participant = promise.getParticipants().stream()
-                .filter(p -> p.getGuest().equals(guest))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("User not authorized to view this promise detail"));
+        boolean isParticipant = promise.getParticipants().stream()
+                .anyMatch(participant -> participant.getGuest().equals(guest));
+
+        if (!isParticipant) {
+            throw new IllegalArgumentException("User not authorized to view this promise detail");
+        }
 
         PromiseDetailDto dto = new PromiseDetailDto();
         dto.setPromiseId(promiseId);
@@ -107,13 +109,17 @@ public class PromiseService {
         dto.setLongitude(promise.getLongitude());
         dto.setLatitude(promise.getLatitude());
         dto.setPenalty(promise.getPenalty());
-        dto.setParticipantId(participant.getId()); // 추가된 부분
 
         Set<String> participantUsernames = promise.getParticipants().stream()
-                .map(p -> p.getGuest().getUsername())
+                .map(participant -> participant.getGuest().getUsername())
+                .collect(Collectors.toSet());
+
+        Set<Long> participantIds = promise.getParticipants().stream()
+                .map(Participant::getId)
                 .collect(Collectors.toSet());
 
         dto.setParticipantUsernames(participantUsernames);
+        dto.setParticipantIds(participantIds); // 수정된 부분
         return dto;
     }
 
