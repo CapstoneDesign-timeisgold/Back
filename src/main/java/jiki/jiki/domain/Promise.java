@@ -33,4 +33,6 @@ public class Promise {
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private Set<Participant> participants = new HashSet<>();
+
+    private boolean isSettled = false;
 }

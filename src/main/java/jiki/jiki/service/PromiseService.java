@@ -23,6 +23,7 @@ public class PromiseService {
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
 
+    //약속 생성
     @Transactional
     public PromiseDetailDto createPromise(PromiseCreateDto promiseCreateDto) {
         SiteUser host = userRepository.findByUsername(promiseCreateDto.getCreatorUsername())
@@ -63,6 +64,7 @@ public class PromiseService {
         return dto;
     }
 
+    //약속 목록
     public List<PromiseListDto> getPromiseList(String guestUsername) {
         SiteUser guest = userRepository.findByUsername(guestUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -83,6 +85,7 @@ public class PromiseService {
                 }).collect(Collectors.toList());
     }
 
+    //약속 상세 보기
     @Transactional
     public PromiseDetailDto getPromiseDetail(Long promiseId, String guestUsername) {
         SiteUser guest = userRepository.findByUsername(guestUsername)
@@ -91,12 +94,10 @@ public class PromiseService {
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
 
-        boolean isParticipant = promise.getParticipants().stream()
-                .anyMatch(participant -> participant.getGuest().equals(guest));
-
-        if (!isParticipant) {
-            throw new IllegalArgumentException("User not authorized to view this promise detail");
-        }
+        Participant participant = promise.getParticipants().stream()
+                .filter(p -> p.getGuest().equals(guest))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("User not authorized to view this promise detail"));
 
         PromiseDetailDto dto = new PromiseDetailDto();
         dto.setPromiseId(promiseId);
@@ -106,15 +107,17 @@ public class PromiseService {
         dto.setLongitude(promise.getLongitude());
         dto.setLatitude(promise.getLatitude());
         dto.setPenalty(promise.getPenalty());
+        dto.setParticipantId(participant.getId()); // 추가된 부분
 
         Set<String> participantUsernames = promise.getParticipants().stream()
-                .map(participant -> participant.getGuest().getUsername())
+                .map(p -> p.getGuest().getUsername())
                 .collect(Collectors.toSet());
 
         dto.setParticipantUsernames(participantUsernames);
         return dto;
     }
 
+    //약속 초대
     public void inviteParticipant(String hostUsername, ParticipantRequestDto participantRequestDto) {
         Promise promise = promiseRepository.findById(participantRequestDto.getPromiseId())
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + participantRequestDto.getPromiseId()));
@@ -140,6 +143,7 @@ public class PromiseService {
         promise.getParticipants().add(participant);
     }
 
+    //약속 초대 요청 목록
     @Transactional
     public Set<ParticipantRequestListDto> getPromiseInvitations(String guestUsername) {
         SiteUser guest = userRepository.findByUsername(guestUsername)
@@ -158,6 +162,7 @@ public class PromiseService {
                 .collect(Collectors.toSet());
     }
 
+    //약속 수락
     public PromiseDetailDto acceptPromiseInvitation(String guestUsername, Long participantId) {
         Participant participant = participantRepository.findById(participantId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + participantId));
@@ -176,6 +181,7 @@ public class PromiseService {
         return getPromiseDetail(participant.getPromise().getId(), guestUsername);
     }
 
+    //약속 거절
     public void declinePromiseInvitation(String guestUsername, Long participantId) {
         Participant participant = participantRepository.findById(participantId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + participantId));
@@ -192,6 +198,7 @@ public class PromiseService {
         }
     }
 
+    //약속 삭제
     @Transactional
     public void deletePromise(Long promiseId, String hostUsername) {
         Promise promise = promiseRepository.findById(promiseId)
@@ -205,5 +212,15 @@ public class PromiseService {
         }
 
         promiseRepository.delete(promise);
+    }
+
+    // 약속에 늦었는지 여부를 업데이트
+    @Transactional
+    public void updateLateStatus(UpdateLateStatusDto updateLateStatusDto) {
+        Participant participant = participantRepository.findById(updateLateStatusDto.getParticipantId())
+                .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + updateLateStatusDto.getParticipantId()));
+
+        participant.setLate(updateLateStatusDto.isLate());
+        participantRepository.save(participant);
     }
 }

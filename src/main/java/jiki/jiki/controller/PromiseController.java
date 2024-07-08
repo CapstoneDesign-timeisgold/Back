@@ -66,4 +66,11 @@ public class PromiseController {
         promiseService.deletePromise(promiseId, hostUsername);
         return ResponseEntity.ok("Promise deleted successfully");
     }
+
+    // 약속에 늦었는지 여부 업데이트
+    @PostMapping("/promise/update-late-status")
+    public ResponseEntity<Void> updateLateStatus(@RequestBody UpdateLateStatusDto updateLateStatusDto) {
+        promiseService.updateLateStatus(updateLateStatusDto);
+        return ResponseEntity.ok().build();
+    }
 }
