@@ -44,7 +44,7 @@ public class PromiseService {
         hostParticipant.setPromise(promise);
         hostParticipant.setGuest(host);
         hostParticipant.setHost(host);
-        hostParticipant.setLate(false);
+        hostParticipant.setArrival(false);
         hostParticipant.setStatus(ParticipantStatus.ACCEPTED);
         participantRepository.save(hostParticipant);
 
@@ -142,7 +142,7 @@ public class PromiseService {
         participant.setPromise(promise);
         participant.setGuest(guest);
         participant.setHost(host);
-        participant.setLate(false);
+        participant.setArrival(false);
         participant.setStatus(ParticipantStatus.PENDING);
 
         participantRepository.save(participant);
@@ -222,11 +222,24 @@ public class PromiseService {
 
     // 약속에 늦었는지 여부를 업데이트
     @Transactional
-    public void updateLateStatus(UpdateLateStatusDto updateLateStatusDto) {
-        Participant participant = participantRepository.findById(updateLateStatusDto.getParticipantId())
-                .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + updateLateStatusDto.getParticipantId()));
+    public void updateLateStatus(UpdateLateStatusDto updateLateStatusDto, String username) {
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid username: " + username));
 
-        participant.setLate(updateLateStatusDto.isLate());
+        Participant participant = participantRepository.findByPromiseIdAndGuestUsername(updateLateStatusDto.getPromiseId(), username)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid participant or promise ID: " + updateLateStatusDto.getPromiseId()));
+
+        // 주최자 혹은 해당 참여자 본인만 지각 상태를 업데이트할 수 있도록 허용
+        if (!participant.getHost().equals(user) && !participant.getPromise().getCreator().equals(user) && !participant.getGuest().equals(user)) {
+            throw new IllegalArgumentException("User not authorized to update late status for this participant");
+        }
+
+        // 지각 상태가 이미 true인 경우 업데이트를 허용하지 않음
+        if (participant.isArrival()) {
+            throw new IllegalStateException("Cannot update late status once it has been set to true");
+        }
+
+        participant.setArrival(updateLateStatusDto.isArrival());
         participantRepository.save(participant);
     }
 }

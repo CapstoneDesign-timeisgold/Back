@@ -35,5 +35,5 @@ public class Participant {
     @Column(nullable = true)
     private ParticipantStatus status;  // 참여 상태
 
-    private boolean isLate;  // 지각 여부
+    private boolean arrival;  // 도착 여부
 }

@@ -69,8 +69,8 @@ public class PromiseController {
 
     // 약속에 늦었는지 여부 업데이트
     @PostMapping("/promise/update-late-status")
-    public ResponseEntity<Void> updateLateStatus(@RequestBody UpdateLateStatusDto updateLateStatusDto) {
-        promiseService.updateLateStatus(updateLateStatusDto);
+    public ResponseEntity<Void> updateLateStatus(@RequestHeader("username") String username, @RequestBody UpdateLateStatusDto updateLateStatusDto) {
+        promiseService.updateLateStatus(updateLateStatusDto, username);
         return ResponseEntity.ok().build();
     }
 }
