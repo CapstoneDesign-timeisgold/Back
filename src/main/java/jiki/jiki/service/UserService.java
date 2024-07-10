@@ -1,6 +1,7 @@
 package jiki.jiki.service;
 
 import jiki.jiki.domain.SiteUser;
+import jiki.jiki.dto.MoneyDto;
 import jiki.jiki.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -27,6 +29,19 @@ public class UserService {
             resultMap.put("message", "User signed up successfully!");
         } catch (Exception e) {
             resultMap.put("error", e.getMessage());
+        }
+        return resultMap;
+    }
+
+    public Map<String, Object> getUserMoney(String username) {
+        Map<String, Object> resultMap = new HashMap<>();
+        Optional<SiteUser> userOptional = userRepository.findByUsername(username);
+        if (userOptional.isPresent()) {
+            SiteUser user = userOptional.get();
+            MoneyDto moneyDto = new MoneyDto(user.getMoney());
+            resultMap.put("money", moneyDto.getMoney());
+        } else {
+            resultMap.put("error", "User not found");
         }
         return resultMap;
     }

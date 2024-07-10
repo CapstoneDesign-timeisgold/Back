@@ -4,9 +4,7 @@ import jakarta.validation.Valid;
 import jiki.jiki.service.UserSecurityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import jiki.jiki.service.UserService;
 import lombok.RequiredArgsConstructor;
 import java.util.Map;
@@ -28,6 +26,12 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginRequest) {
         Map<String, Object> resultMap = userSecurityService.authenticateUser(loginRequest);
         return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.UNAUTHORIZED : HttpStatus.OK);
+    }
+
+    @GetMapping("/user/money")
+    public ResponseEntity<Map<String, Object>> getUserMoney(@RequestHeader("username") String username) {
+        Map<String, Object> resultMap = userService.getUserMoney(username);
+        return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }
 }
 
