@@ -2,6 +2,7 @@ package jiki.jiki.service;
 
 import jiki.jiki.domain.SiteUser;
 import jiki.jiki.dto.MoneyDto;
+import jiki.jiki.dto.UserCreateForm;
 import jiki.jiki.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,14 +18,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Map<String, Object> createUser(Map<String, String> userCreateForm) {
+    public Map<String, Object> createUser(UserCreateForm userCreateForm) {
         Map<String, Object> resultMap = new HashMap<>();
         try {
             SiteUser user = new SiteUser();
-            user.setUsername(userCreateForm.get("username"));
-            user.setNickname(userCreateForm.get("nickname"));
-            user.setEmail(userCreateForm.get("email"));
-            user.setPassword(passwordEncoder.encode(userCreateForm.get("password1")));
+            user.setUsername(userCreateForm.getUsername());
+            user.setNickname(userCreateForm.getNickname());
+            user.setEmail(userCreateForm.getEmail());
+            user.setPassword(passwordEncoder.encode(userCreateForm.getPassword1()));
             this.userRepository.save(user);
             resultMap.put("message", "User signed up successfully!");
         } catch (Exception e) {
@@ -38,7 +39,9 @@ public class UserService {
         Optional<SiteUser> userOptional = userRepository.findByUsername(username);
         if (userOptional.isPresent()) {
             SiteUser user = userOptional.get();
-            MoneyDto moneyDto = new MoneyDto(user.getMoney());
+            MoneyDto moneyDto = MoneyDto.builder()
+                    .money(user.getMoney())
+                    .build();
             resultMap.put("money", moneyDto.getMoney());
         } else {
             resultMap.put("error", "User not found");

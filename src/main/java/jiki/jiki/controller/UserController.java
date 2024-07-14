@@ -1,6 +1,7 @@
 package jiki.jiki.controller;
 
 import jakarta.validation.Valid;
+import jiki.jiki.dto.UserCreateForm;
 import jiki.jiki.service.UserSecurityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,7 @@ public class UserController {
     private final UserSecurityService userSecurityService;
 
     @PostMapping("/user/signup")
-    public ResponseEntity<Map<String, Object>> signup(@Valid @RequestBody Map<String, String> userCreateForm) {
+    public ResponseEntity<Map<String, Object>> signup(@Valid @RequestBody UserCreateForm userCreateForm) {
         Map<String, Object> resultMap = userService.createUser(userCreateForm);
         return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK);
     }

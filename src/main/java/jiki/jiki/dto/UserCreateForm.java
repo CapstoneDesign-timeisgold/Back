@@ -2,16 +2,18 @@
 
 package jiki.jiki.dto;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 
-@Getter
-@Setter
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserCreateForm {
 
     @NotEmpty
@@ -27,11 +29,6 @@ public class UserCreateForm {
     @Email
     private String email;
 
-    // UserCreateForm 객체를 JSON 형식의 문자열로 변환하는 메서드
-    public String toJsonString() throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(this);
-    }
 }
 
 
