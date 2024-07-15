@@ -49,14 +49,13 @@ public class FriendService {
     }
 
     private FriendRequestListDto mapToFriendRequestListDto(Friend friend) {
-        FriendRequestListDto friendRequestListDto = new FriendRequestListDto();
-        friendRequestListDto.setFriendId(friend.getId());
-        friendRequestListDto.setUsername(friend.getUser1().getUsername());
-        friendRequestListDto.setUsername2(friend.getUser2().getUsername());
-        return friendRequestListDto;
+        return FriendRequestListDto.builder()
+                .friendId(friend.getId())
+                .username(friend.getUser1().getUsername())
+                .username2(friend.getUser2().getUsername())
+                .build();
     }
 
-    //친구 수락
     @Transactional
     public void acceptFriendRequest(Long friendId) {
         Friend friend = friendRepository.findById(friendId)
@@ -65,7 +64,6 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
-    //친구 거절
     @Transactional
     public void declineFriendRequest(Long friendId) {
         Friend friend = friendRepository.findById(friendId)
@@ -73,7 +71,6 @@ public class FriendService {
         friend.setStatus(FriendStatus.DECLINED);
         friendRepository.save(friend);
     }
-
 
     @Transactional(readOnly = true)
     public Set<FriendResponseDto> getFriendRequestsDto(String username) {
@@ -84,12 +81,12 @@ public class FriendService {
     }
 
     private FriendResponseDto mapToFriendResponseDto(Friend friend) {
-        FriendResponseDto friendResponseDto = new FriendResponseDto();
-        friendResponseDto.setId(friend.getId());
-        friendResponseDto.setUsername(friend.getUser1().getUsername());
-        friendResponseDto.setUsername2(friend.getUser2().getUsername());
-        friendResponseDto.setStatus(friend.getStatus().name());
-        return friendResponseDto;
+        return FriendResponseDto.builder()
+                .id(friend.getId())
+                .username(friend.getUser1().getUsername())
+                .username2(friend.getUser2().getUsername())
+                .status(friend.getStatus().name())
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -101,15 +98,10 @@ public class FriendService {
     }
 
     private FriendDto mapToFriendDto(Friend friend, String requestUsername) {
-        FriendDto friendDto = new FriendDto();
-        if (friend.getUser1().getUsername().equals(requestUsername)) {
-            friendDto.setUsername(requestUsername);
-            friendDto.setUsername2(friend.getUser2().getUsername());
-        } else {
-            friendDto.setUsername(requestUsername);
-            friendDto.setUsername2(friend.getUser1().getUsername());
-        }
-        friendDto.setStatus(friend.getStatus().name());
-        return friendDto;
+        return FriendDto.builder()
+                .username(requestUsername)
+                .username2(friend.getUser1().getUsername().equals(requestUsername) ? friend.getUser2().getUsername() : friend.getUser1().getUsername())
+                .status(friend.getStatus().name())
+                .build();
     }
 }
