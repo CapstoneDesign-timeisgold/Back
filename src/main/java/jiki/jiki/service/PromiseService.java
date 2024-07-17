@@ -51,15 +51,16 @@ public class PromiseService {
         promise.getParticipants().add(hostParticipant);
 
         // DTO 변환
-        PromiseDetailDto dto = new PromiseDetailDto();
-        dto.setPromiseId(promise.getId());
-        dto.setTitle(promise.getTitle());
-        dto.setDate(promise.getDate());
-        dto.setTime(promise.getTime());
-        dto.setLatitude(promise.getLatitude());
-        dto.setLongitude(promise.getLongitude());
-        dto.setPenalty(promise.getPenalty());
-        dto.setParticipantUsernames(Set.of(host.getUsername()));
+        PromiseDetailDto dto = PromiseDetailDto.builder()
+                .promiseId(promise.getId())
+                .title(promise.getTitle())
+                .date(promise.getDate())
+                .time(promise.getTime())
+                .latitude(promise.getLatitude())
+                .longitude(promise.getLongitude())
+                .penalty(promise.getPenalty())
+                .participantUsernames(Set.of(host.getUsername()))
+                .build();
 
         return dto;
     }
@@ -75,13 +76,13 @@ public class PromiseService {
                 .filter(participant -> participant.getStatus() == ParticipantStatus.ACCEPTED)
                 .map(participant -> {
                     Promise promise = participant.getPromise();
-                    PromiseListDto dto = new PromiseListDto();
-                    dto.setTitle(promise.getTitle());
-                    dto.setDate(promise.getDate());
-                    dto.setTime(promise.getTime());
-                    dto.setPromiseId(promise.getId());
-                    dto.setCreatorUsername(promise.getCreator().getUsername());
-                    return dto;
+                    return PromiseListDto.builder()
+                            .title(promise.getTitle())
+                            .date(promise.getDate())
+                            .time(promise.getTime())
+                            .promiseId(promise.getId())
+                            .creatorUsername(promise.getCreator().getUsername())
+                            .build();
                 }).collect(Collectors.toList());
     }
 
@@ -101,15 +102,6 @@ public class PromiseService {
             throw new IllegalArgumentException("User not authorized to view this promise detail");
         }
 
-        PromiseDetailDto dto = new PromiseDetailDto();
-        dto.setPromiseId(promiseId);
-        dto.setTitle(promise.getTitle());
-        dto.setDate(promise.getDate());
-        dto.setTime(promise.getTime());
-        dto.setLongitude(promise.getLongitude());
-        dto.setLatitude(promise.getLatitude());
-        dto.setPenalty(promise.getPenalty());
-
         Set<String> participantUsernames = promise.getParticipants().stream()
                 .map(participant -> participant.getGuest().getUsername())
                 .collect(Collectors.toSet());
@@ -118,9 +110,17 @@ public class PromiseService {
                 .map(Participant::getId)
                 .collect(Collectors.toSet());
 
-        dto.setParticipantUsernames(participantUsernames);
-        dto.setParticipantIds(participantIds); // 수정된 부분
-        return dto;
+        return PromiseDetailDto.builder()
+                .promiseId(promiseId)
+                .title(promise.getTitle())
+                .date(promise.getDate())
+                .time(promise.getTime())
+                .latitude(promise.getLatitude())
+                .longitude(promise.getLongitude())
+                .penalty(promise.getPenalty())
+                .participantUsernames(participantUsernames)
+                .participantIds(participantIds)
+                .build();
     }
 
     //약속 초대
@@ -157,14 +157,14 @@ public class PromiseService {
 
         return participantRepository.findByGuestAndStatus(guest, ParticipantStatus.PENDING)
                 .stream()
-                .map(participant -> {
-                    ParticipantRequestListDto dto = new ParticipantRequestListDto();
-                    dto.setPromiseId(participant.getPromise().getId());
-                    dto.setHostUsername(participant.getHost().getUsername());
-                    dto.setGuestUsername(participant.getGuest().getUsername());
-                    dto.setParticipantId(participant.getId());
-                    return dto;
-                })
+                .map(participant -> ParticipantRequestListDto.builder()
+                        .promiseId(participant.getPromise().getId())
+                        .hostUsername(participant.getHost().getUsername())
+                        .guestUsername(participant.getGuest().getUsername())
+                        .participantId(participant.getId())
+                        .title(participant.getPromise().getTitle())
+                        .build()
+                )
                 .collect(Collectors.toSet());
     }
 
