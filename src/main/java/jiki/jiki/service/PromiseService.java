@@ -242,4 +242,52 @@ public class PromiseService {
         participant.setArrival(updateLateStatusDto.isArrival());
         participantRepository.save(participant);
     }
+
+    // 벌금 정산 결과
+    @Transactional
+    public PromiseResultDto getPromiseResultDetails(Long promiseId) {
+        Promise promise = promiseRepository.findById(promiseId)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
+
+        if (!promise.isSettled()) {
+            throw new IllegalStateException("Promise settlement has not been finalized yet");
+        }
+
+        Set<Participant> participants = promise.getParticipants();
+
+        List<UserPenaltyDto> lateUsers = participants.stream()
+                .filter(participant -> !participant.isArrival())
+                .map(participant -> {
+                    SiteUser lateUser = participant.getGuest();
+                    return UserPenaltyDto.builder()
+                            .username(lateUser.getUsername())
+                            .penaltyAmount(promise.getPenalty())
+                            .rewardAmount(0)  // 벌금만 적용, 보상 없음
+                            .build();
+                }).collect(Collectors.toList());
+
+        int totalPenalty = lateUsers.size() * promise.getPenalty();
+
+        // 일부만 시간을 지켰을 때의 보상 금액 계산
+        int rewardPerParticipant = totalPenalty / Math.max(1, participants.size() - lateUsers.size());
+
+        List<UserPenaltyDto> onTimeUsers = participants.stream()
+                .filter(Participant::isArrival)
+                .map(participant -> {
+                    SiteUser onTimeUser = participant.getGuest();
+                    return UserPenaltyDto.builder()
+                            .username(onTimeUser.getUsername())
+                            .penaltyAmount(0)  // 보상만 적용, 벌금 없음
+                            .rewardAmount(rewardPerParticipant)
+                            .build();
+                }).collect(Collectors.toList());
+
+        return PromiseResultDto.builder()
+                .promiseId(promise.getId())
+                .lateUsers(lateUsers)
+                .onTimeUsers(onTimeUsers)
+                .totalPenalty(totalPenalty)
+                .build();
+    }
+
 }

@@ -73,4 +73,11 @@ public class PromiseController {
         promiseService.updateLateStatus(updateLateStatusDto, username);
         return ResponseEntity.ok().build();
     }
+
+    // 약속 벌금 정산 결과 조회
+    @GetMapping("/promise/{promiseId}/result")
+    public ResponseEntity<PromiseResultDto> getPromiseResultDetails(@PathVariable("promiseId") Long promiseId, @RequestHeader("username") String guestUsername) {
+        PromiseResultDto settlementDetails = promiseService.getPromiseResultDetails(promiseId);
+        return ResponseEntity.ok(settlementDetails);
+    }
 }
