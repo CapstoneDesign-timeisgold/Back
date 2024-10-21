@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import jiki.jiki.domain.Participant;
 import jiki.jiki.domain.Promise;
 import jiki.jiki.domain.SiteUser;
+import jiki.jiki.dto.MoneyDto;
 import jiki.jiki.dto.RewardDto;
 import jiki.jiki.repository.ParticipantRepository;
 import jiki.jiki.repository.PromiseRepository;
@@ -45,14 +46,22 @@ public class PaymentService {
 
         int totalPenalty = lateParticipants.size() * promise.getPenalty();
 
-        // 모두가 늦었을 때
+        // 모두가 늦었을 때: 벌금을 admin에게 전달
         if (onTimeParticipants.isEmpty()) {
             if (!lateParticipants.isEmpty()) {
+                // admin 유저 찾기
+                SiteUser admin = userRepository.findByUsername("admin")
+                        .orElseThrow(() -> new EntityNotFoundException("Admin user not found"));
+
                 for (Participant lateParticipant : lateParticipants) {
                     SiteUser lateUser = lateParticipant.getGuest();
                     lateUser.setMoney(lateUser.getMoney() - promise.getPenalty());
                     userRepository.save(lateUser);
                 }
+
+                // 벌금을 admin에게 전달
+                admin.setMoney(admin.getMoney() + totalPenalty);
+                userRepository.save(admin);
             }
             promise.setSettled(true);
             promiseRepository.save(promise);
@@ -84,4 +93,13 @@ public class PaymentService {
         promise.setSettled(true);
         promiseRepository.save(promise);
     }
+
+    // "admin"의 총 금액(전체 모금액)
+    @Transactional
+    public MoneyDto getAdminMoney() {
+        SiteUser admin = userRepository.findByUsername("admin")
+                .orElseThrow(() -> new EntityNotFoundException("Admin user not found"));
+        return MoneyDto.builder().money(admin.getMoney()).build();
+    }
+
 }
