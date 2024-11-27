@@ -2,11 +2,10 @@ package jiki.jiki.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import jiki.jiki.domain.Participant;
-import jiki.jiki.domain.Promise;
 import jiki.jiki.domain.SiteUser;
 import jiki.jiki.dto.MoneyDto;
-import jiki.jiki.dto.RewardDto;
+import jiki.jiki.dto.MoneyRecordDto;
+import jiki.jiki.repository.MoneyRecordRepository;
 import jiki.jiki.repository.ParticipantRepository;
 import jiki.jiki.repository.PromiseRepository;
 import jiki.jiki.repository.UserRepository;
@@ -14,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,75 +22,8 @@ public class PaymentService {
     private final PromiseRepository promiseRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
+    private final MoneyRecordRepository moneyRecordRepository;
 
-    @Transactional
-    public void decideRewards(RewardDto rewardDto) {
-        Promise promise = promiseRepository.findById(rewardDto.getPromiseId())
-                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + rewardDto.getPromiseId()));
-
-        if (promise.isSettled()) {
-            throw new IllegalStateException("Rewards have already been settled for this promise");
-        }
-
-        Set<Participant> participants = promise.getParticipants();
-
-        List<Participant> lateParticipants = participants.stream()
-                .filter(participant -> !participant.isArrival())
-                .collect(Collectors.toList());
-
-        List<Participant> onTimeParticipants = participants.stream()
-                .filter(Participant::isArrival)
-                .collect(Collectors.toList());
-
-        int totalPenalty = lateParticipants.size() * promise.getPenalty();
-
-        // 모두가 늦었을 때: 벌금을 admin에게 전달
-        if (onTimeParticipants.isEmpty()) {
-            if (!lateParticipants.isEmpty()) {
-                // admin 유저 찾기
-                SiteUser admin = userRepository.findByUsername("admin")
-                        .orElseThrow(() -> new EntityNotFoundException("Admin user not found"));
-
-                for (Participant lateParticipant : lateParticipants) {
-                    SiteUser lateUser = lateParticipant.getGuest();
-                    lateUser.setMoney(lateUser.getMoney() - promise.getPenalty());
-                    userRepository.save(lateUser);
-                }
-
-                // 벌금을 admin에게 전달
-                admin.setMoney(admin.getMoney() + totalPenalty);
-                userRepository.save(admin);
-            }
-            promise.setSettled(true);
-            promiseRepository.save(promise);
-            return;
-        }
-
-        // 모두가 시간을 지켰을 때
-        if (lateParticipants.isEmpty()) {
-            promise.setSettled(true);
-            promiseRepository.save(promise);
-            return;
-        }
-
-        // 일부만 지켰을 때
-        int rewardPerParticipant = totalPenalty / onTimeParticipants.size();
-
-        for (Participant lateParticipant : lateParticipants) {
-            SiteUser lateUser = lateParticipant.getGuest();
-            lateUser.setMoney(lateUser.getMoney() - promise.getPenalty());
-            userRepository.save(lateUser);
-        }
-
-        for (Participant onTimeParticipant : onTimeParticipants) {
-            SiteUser onTimeUser = onTimeParticipant.getGuest();
-            onTimeUser.setMoney(onTimeUser.getMoney() + rewardPerParticipant);
-            userRepository.save(onTimeUser);
-        }
-
-        promise.setSettled(true);
-        promiseRepository.save(promise);
-    }
 
     // "admin"의 총 금액(전체 모금액)
     @Transactional
@@ -102,4 +33,21 @@ public class PaymentService {
         return MoneyDto.builder().money(admin.getMoney()).build();
     }
 
+    //PromiseService의 saveRecord를 사용하여 개인 거래 내역(마치 은행 개인 계좌 거래 내역처럼)을 사용자가 확인할 수 있게 하기
+    @Transactional
+    public List<MoneyRecordDto> getUserMoneyRecords(String username) {
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
+
+        return moneyRecordRepository.findByUser(user).stream()
+                .map(record -> MoneyRecordDto.builder()
+                        .id(record.getId())
+                        .promiseTitle(record.getPromiseTitle())
+                        .amount(record.getAmount())
+                        .isPenalty(record.isPenalty())
+                        .transactionDate(record.getTransactionDate())
+                        .balanceAfterTransaction(record.getBalanceAfterTransaction())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }

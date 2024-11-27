@@ -80,4 +80,10 @@ public class PromiseController {
         PromiseResultDto settlementDetails = promiseService.getPromiseResultDetails(promiseId);
         return ResponseEntity.ok(settlementDetails);
     }
+
+    @PostMapping("/payment/reward")
+    public ResponseEntity<Void> decideRewards(@RequestBody RewardDto rewardDto) {
+        promiseService.decideRewards(rewardDto);
+        return ResponseEntity.ok().build();
+    }
 }
