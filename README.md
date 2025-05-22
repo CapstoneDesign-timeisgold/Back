@@ -1,3 +1,6 @@
+### 프로젝트 전체 설명
+https://github.com/CapstoneDesign-timeisgold
+
 ### 프로젝트 흐름
 
 ### 기능들
