@@ -34,6 +34,7 @@ public class UserService {
         return resultMap;
     }
 
+    //개인 포인트 조회
     public Map<String, Object> getUserMoney(String username) {
         Map<String, Object> resultMap = new HashMap<>();
         Optional<SiteUser> userOptional = userRepository.findByUsername(username);
