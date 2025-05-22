@@ -24,6 +24,7 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final UserRepository userRepository;
 
+    //친구 초대 요청
     @Transactional
     public void sendFriendRequest(FriendRequestDto friendRequestDto) {
         Optional<SiteUser> user1 = userRepository.findByUsername(friendRequestDto.getUsername());
@@ -40,6 +41,7 @@ public class FriendService {
         }
     }
 
+    //친구 요청 알림
     @Transactional(readOnly = true)
     public Set<FriendRequestListDto> getFriendRequests(String username) {
         return friendRepository.findByUser2UsernameAndStatus(username, FriendStatus.PENDING)
@@ -56,6 +58,7 @@ public class FriendService {
                 .build();
     }
 
+    //친구추가 수락
     @Transactional
     public void acceptFriendRequest(Long friendId) {
         Friend friend = friendRepository.findById(friendId)
@@ -64,6 +67,7 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
+    //친구추가 거절
     @Transactional
     public void declineFriendRequest(Long friendId) {
         Friend friend = friendRepository.findById(friendId)
@@ -72,6 +76,7 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
+    //친구목록
     @Transactional(readOnly = true)
     public Set<FriendResponseDto> getFriendRequestsDto(String username) {
         return friendRepository.findByUser2UsernameAndStatus(username, FriendStatus.PENDING)
