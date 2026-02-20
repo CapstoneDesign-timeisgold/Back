@@ -21,7 +21,7 @@ public class UserController {
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
-    public ResponseEntity<Map<String, Object>> signup(@Valid @RequestBody UserCreateForm userCreateForm) {
+    public ResponseEntity<Map<String, Object>> signup(@Valid @RequestBody UserSignupDto userCreateForm) {
         Map<String, Object> resultMap = userService.createUser(userCreateForm);
         return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK);
     }

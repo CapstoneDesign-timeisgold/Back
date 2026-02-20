@@ -15,7 +15,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Map<String, Object> createUser(UserCreateForm userCreateForm) {
+    public Map<String, Object> createUser(UserSignupDto userCreateForm) {
         Map<String, Object> resultMap = new HashMap<>();
         try {
             SiteUser user = new SiteUser();
