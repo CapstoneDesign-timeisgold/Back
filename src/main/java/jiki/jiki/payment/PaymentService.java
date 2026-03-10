@@ -1,7 +1,7 @@
 package jiki.jiki.payment;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.promise.ParticipantRepository;
 import jiki.jiki.promise.PromiseRepository;
@@ -23,7 +23,7 @@ public class PaymentService {
 
 
     // "admin"의 총 금액(전체 모금액)
-    @Transactional
+    @Transactional(readOnly = true)
     public MoneyDto getAdminMoney() {
         SiteUser admin = userRepository.findByUsername("admin")
                 .orElseThrow(() -> new EntityNotFoundException("Admin user not found"));
@@ -31,7 +31,7 @@ public class PaymentService {
     }
 
     //PromiseService의 saveRecord를 사용하여 개인 거래 내역(마치 은행 개인 계좌 거래 내역처럼)을 사용자가 확인할 수 있게 하기
-    @Transactional
+    @Transactional(readOnly = true)
     public List<MoneyRecordDto> getUserMoneyRecords(String username) {
         SiteUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));

@@ -3,6 +3,7 @@ package jiki.jiki.friend;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class FriendController {
     @Operation(summary = "친구 요청 보내기", description = "다른 사용자에게 친구 요청을 보냅니다.")
     public ResponseEntity<String> sendFriendRequest(@RequestBody FriendRequestDto friendRequestDto) {
         friendService.sendFriendRequest(friendRequestDto);
-        return ResponseEntity.ok("Friend request sent");
+        return ResponseEntity.status(HttpStatus.CREATED).body("Friend request sent");
     }
 
     @GetMapping("/requests/{username}")
@@ -41,10 +42,10 @@ public class FriendController {
 
     @PostMapping("/decline/{friendId}")
     @Operation(summary = "친구 요청 거절", description = "받은 친구 요청을 거절합니다.")
-    public ResponseEntity<String> declineFriendRequest(
+    public ResponseEntity<Void> declineFriendRequest(
             @PathVariable("friendId") Long friendId) {
         friendService.declineFriendRequest(friendId);
-        return ResponseEntity.ok("Friend request declined");
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/list/{username}")

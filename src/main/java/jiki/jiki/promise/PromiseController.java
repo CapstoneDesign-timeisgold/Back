@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jiki.jiki.payment.RewardDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,7 @@ public class PromiseController {
     @Operation(summary = "약속 생성", description = "새로운 약속을 생성합니다.")
     public ResponseEntity<PromiseDetailDto> createPromise(@RequestBody PromiseCreateDto promiseCreateDto) {
         PromiseDetailDto promise = promiseService.createPromise(promiseCreateDto);
-        return ResponseEntity.ok(promise);
+        return ResponseEntity.status(HttpStatus.CREATED).body(promise);
     }
 
     @PostMapping("/invitation")
@@ -30,7 +31,7 @@ public class PromiseController {
     public ResponseEntity<String> inviteFriends(@RequestHeader("username") String hostUsername,
                                                 @RequestBody ParticipantRequestDto participantRequestDto) {
         promiseService.inviteParticipant(hostUsername, participantRequestDto);
-        return ResponseEntity.ok("Friends invited to the promise");
+        return ResponseEntity.status(HttpStatus.CREATED).body("Friends invited to the promise");
     }
 
     @GetMapping("/invitation/{username}")
@@ -73,10 +74,10 @@ public class PromiseController {
 
     @DeleteMapping("/{promiseId}")
     @Operation(summary = "약속 삭제", description = "사용자가 만든 약속을 삭제합니다.")
-    public ResponseEntity<String> deletePromise(@PathVariable("promiseId") Long promiseId,
-                                                @RequestHeader("username") String hostUsername) {
+    public ResponseEntity<Void> deletePromise(@PathVariable("promiseId") Long promiseId,
+                                              @RequestHeader("username") String hostUsername) {
         promiseService.deletePromise(promiseId, hostUsername);
-        return ResponseEntity.ok("Promise deleted successfully");
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/update-late-status")
@@ -84,7 +85,7 @@ public class PromiseController {
     public ResponseEntity<Void> updateLateStatus(@RequestHeader("username") String username,
                                                  @RequestBody UpdateLateStatusDto updateLateStatusDto) {
         promiseService.updateLateStatus(updateLateStatusDto, username);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{promiseId}/result")
@@ -99,6 +100,6 @@ public class PromiseController {
     @Operation(summary = "보상 지급 결정", description = "벌금 및 보상을 정산합니다.")
     public ResponseEntity<Void> decideRewards(@RequestBody RewardDto rewardDto) {
         promiseService.decideRewards(rewardDto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

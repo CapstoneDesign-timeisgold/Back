@@ -1,13 +1,12 @@
 package jiki.jiki.user;
 
+import jakarta.persistence.EntityNotFoundException;
 import jiki.jiki.payment.MoneyDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -15,36 +14,24 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Map<String, Object> createUser(UserSignupDto userCreateForm) {
-        Map<String, Object> resultMap = new HashMap<>();
-        try {
-            SiteUser user = new SiteUser();
-            user.setUsername(userCreateForm.getUsername());
-            user.setNickname(userCreateForm.getNickname());
-            user.setEmail(userCreateForm.getEmail());
-            user.setPassword(passwordEncoder.encode(userCreateForm.getPassword1()));
-            this.userRepository.save(user);
-            resultMap.put("message", "User signed up successfully!");
-        } catch (Exception e) {
-            resultMap.put("error", e.getMessage());
+    public Map<String, String> createUser(UserSignupDto userCreateForm) {
+        if (userRepository.findByUsername(userCreateForm.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
-        return resultMap;
+        SiteUser user = new SiteUser();
+        user.setUsername(userCreateForm.getUsername());
+        user.setNickname(userCreateForm.getNickname());
+        user.setEmail(userCreateForm.getEmail());
+        user.setPassword(passwordEncoder.encode(userCreateForm.getPassword1()));
+        userRepository.save(user);
+        return Map.of("message", "User signed up successfully!");
     }
 
-    //개인 포인트 조회
-    public Map<String, Object> getUserMoney(String username) {
-        Map<String, Object> resultMap = new HashMap<>();
-        Optional<SiteUser> userOptional = userRepository.findByUsername(username);
-        if (userOptional.isPresent()) {
-            SiteUser user = userOptional.get();
-            MoneyDto moneyDto = MoneyDto.builder()
-                    .money(user.getMoney())
-                    .build();
-            resultMap.put("money", moneyDto.getMoney());
-        } else {
-            resultMap.put("error", "User not found");
-        }
-        return resultMap;
+    // 개인 포인트 조회
+    public MoneyDto getUserMoney(String username) {
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
+        return MoneyDto.builder().money(user.getMoney()).build();
     }
 }
 
