@@ -29,13 +29,14 @@ public class UserSecurityService implements UserDetailsService {
         String username = loginRequest.get("username");
         String password = loginRequest.get("password");
 
-        UserDetails userDetails = loadUserByUsername(username);
-        if (!passwordEncoder.matches(password, userDetails.getPassword())) {
+        SiteUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new IllegalStateException("Invalid username or password");
         }
 
-        String nickname = getUserNickname(username);
-        return Map.of("message", "Login successful!", "nickname", nickname);
+        return Map.of("message", "Login successful!", "nickname", user.getNickname());
     }
 
     public String getUserNickname(String username) {

@@ -37,7 +37,7 @@ public class FriendService {
     //친구 요청 알림
     @Transactional(readOnly = true)
     public Set<FriendRequestListDto> getFriendRequests(String username) {
-        return friendRepository.findByUser2UsernameAndStatus(username, FriendStatus.PENDING)
+        return friendRepository.findPendingRequestsWithUsers(username, FriendStatus.PENDING)
                 .stream()
                 .map(this::mapToFriendRequestListDto)
                 .collect(Collectors.toSet());
@@ -72,7 +72,7 @@ public class FriendService {
     //친구목록
     @Transactional(readOnly = true)
     public Set<FriendResponseDto> getFriendRequestsDto(String username) {
-        return friendRepository.findByUser2UsernameAndStatus(username, FriendStatus.PENDING)
+        return friendRepository.findAcceptedFriendsWithUsers(username, FriendStatus.ACCEPTED)
                 .stream()
                 .map(this::mapToFriendResponseDto)
                 .collect(Collectors.toSet());
@@ -89,7 +89,7 @@ public class FriendService {
 
     @Transactional(readOnly = true)
     public Set<FriendDto> getFriends(String username) {
-        return friendRepository.findByUser1UsernameOrUser2UsernameAndStatus(username, username, FriendStatus.ACCEPTED)
+        return friendRepository.findAcceptedFriendsWithUsers(username, FriendStatus.ACCEPTED)
                 .stream()
                 .map(friend -> mapToFriendDto(friend, username))
                 .collect(Collectors.toSet());

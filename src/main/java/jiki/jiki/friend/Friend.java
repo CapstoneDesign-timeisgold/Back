@@ -8,6 +8,11 @@ import lombok.ToString;
 
 @Data
 @Entity
+@Table(indexes = {
+        @Index(name = "idx_friend_user1", columnList = "user_id1"),
+        @Index(name = "idx_friend_user2", columnList = "user_id2"),
+        @Index(name = "idx_friend_status", columnList = "status")
+})
 public class Friend {
 
     @Id
