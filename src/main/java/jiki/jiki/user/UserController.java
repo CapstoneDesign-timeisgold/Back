@@ -3,7 +3,8 @@ package jiki.jiki.user;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jiki.jiki.payment.MoneyDto;
+import jiki.jiki.settlement.MoneyDto;
+import jiki.jiki.settlement.SettlementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ public class UserController {
 
     private final UserService userService;
     private final UserSecurityService userSecurityService;
+    private final SettlementService settlementService;
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
@@ -37,7 +39,7 @@ public class UserController {
     @GetMapping("/money")
     @Operation(summary = "잔액 조회", description = "사용자의 현재 잔액을 조회합니다.")
     public ResponseEntity<MoneyDto> getUserMoney(@RequestHeader("username") String username) {
-        MoneyDto moneyDto = userService.getUserMoney(username);
+        MoneyDto moneyDto = settlementService.getUserMoney(username);
         return ResponseEntity.ok(moneyDto);
     }
 }

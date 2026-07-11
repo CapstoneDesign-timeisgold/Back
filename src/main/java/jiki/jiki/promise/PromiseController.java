@@ -2,7 +2,6 @@ package jiki.jiki.promise;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jiki.jiki.payment.RewardDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -85,21 +84,6 @@ public class PromiseController {
     public ResponseEntity<Void> updateLateStatus(@RequestHeader("username") String username,
                                                  @RequestBody UpdateLateStatusDto updateLateStatusDto) {
         promiseService.updateLateStatus(updateLateStatusDto, username);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/{promiseId}/result")
-    @Operation(summary = "벌금 정산 결과 조회", description = "약속의 벌금 정산 결과를 조회합니다.")
-    public ResponseEntity<PromiseResultDto> getPromiseResultDetails(@PathVariable("promiseId") Long promiseId,
-                                                                    @RequestHeader("username") String guestUsername) {
-        PromiseResultDto settlementDetails = promiseService.getPromiseResultDetails(promiseId);
-        return ResponseEntity.ok(settlementDetails);
-    }
-
-    @PostMapping("/reward")
-    @Operation(summary = "보상 지급 결정", description = "벌금 및 보상을 정산합니다.")
-    public ResponseEntity<Void> decideRewards(@RequestBody RewardDto rewardDto) {
-        promiseService.decideRewards(rewardDto);
         return ResponseEntity.noContent().build();
     }
 }

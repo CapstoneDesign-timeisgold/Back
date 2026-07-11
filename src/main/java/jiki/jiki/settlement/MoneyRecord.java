@@ -1,6 +1,7 @@
-package jiki.jiki.user;
+package jiki.jiki.settlement;
 
 import jakarta.persistence.*;
+import jiki.jiki.user.SiteUser;
 import lombok.Data;
 
 import java.time.LocalDateTime;

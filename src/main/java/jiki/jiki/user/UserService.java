@@ -1,7 +1,5 @@
 package jiki.jiki.user;
 
-import jakarta.persistence.EntityNotFoundException;
-import jiki.jiki.payment.MoneyDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,13 +23,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(userCreateForm.getPassword1()));
         userRepository.save(user);
         return Map.of("message", "User signed up successfully!");
-    }
-
-    // 개인 포인트 조회
-    public MoneyDto getUserMoney(String username) {
-        SiteUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
-        return MoneyDto.builder().money(user.getMoney()).build();
     }
 }
 
