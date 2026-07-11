@@ -1,6 +1,5 @@
-package jiki.jiki.promise;
+package jiki.jiki.settlement;
 
-import jiki.jiki.user.UserPenaltyDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

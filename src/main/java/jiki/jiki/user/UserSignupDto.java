@@ -1,5 +1,3 @@
-//회원가입 dto
-
 package jiki.jiki.user;
 
 import jakarta.validation.constraints.Email;
@@ -14,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserCreateForm {
+public class UserSignupDto {
 
     @NotEmpty
     private String username;
