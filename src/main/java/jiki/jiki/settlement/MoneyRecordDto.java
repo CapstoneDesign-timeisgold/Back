@@ -1,4 +1,4 @@
-package jiki.jiki.payment;
+package jiki.jiki.settlement;
 
 import lombok.Builder;
 import lombok.Data;

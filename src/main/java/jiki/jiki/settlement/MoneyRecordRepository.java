@@ -1,6 +1,5 @@
-package jiki.jiki.payment;
+package jiki.jiki.settlement;
 
-import jiki.jiki.user.MoneyRecord;
 import jiki.jiki.user.SiteUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 
