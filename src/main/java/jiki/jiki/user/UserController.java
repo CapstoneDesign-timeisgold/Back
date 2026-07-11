@@ -3,6 +3,8 @@ package jiki.jiki.user;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jiki.jiki.settlement.MoneyDto;
+import jiki.jiki.settlement.SettlementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,25 +20,26 @@ public class UserController {
 
     private final UserService userService;
     private final UserSecurityService userSecurityService;
+    private final SettlementService settlementService;
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
-    public ResponseEntity<Map<String, Object>> signup(@Valid @RequestBody UserCreateForm userCreateForm) {
-        Map<String, Object> resultMap = userService.createUser(userCreateForm);
-        return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK);
+    public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody UserSignupDto userCreateForm) {
+        Map<String, String> result = userService.createUser(userCreateForm);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "사용자 로그인 API")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginRequest) {
-        Map<String, Object> resultMap = userSecurityService.authenticateUser(loginRequest);
-        return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.UNAUTHORIZED : HttpStatus.OK);
+    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> loginRequest) {
+        Map<String, String> result = userSecurityService.authenticateUser(loginRequest);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/money")
     @Operation(summary = "잔액 조회", description = "사용자의 현재 잔액을 조회합니다.")
-    public ResponseEntity<Map<String, Object>> getUserMoney(@RequestHeader("username") String username) {
-        Map<String, Object> resultMap = userService.getUserMoney(username);
-        return new ResponseEntity<>(resultMap, resultMap.containsKey("error") ? HttpStatus.NOT_FOUND : HttpStatus.OK);
+    public ResponseEntity<MoneyDto> getUserMoney(@RequestHeader("username") String username) {
+        MoneyDto moneyDto = settlementService.getUserMoney(username);
+        return ResponseEntity.ok(moneyDto);
     }
 }

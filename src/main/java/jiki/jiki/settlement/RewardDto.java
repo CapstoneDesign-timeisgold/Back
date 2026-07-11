@@ -1,4 +1,4 @@
-package jiki.jiki.payment;
+package jiki.jiki.settlement;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class MoneyDto {
-    private int money;
+public class RewardDto {
+    private Long promiseId;
 }
