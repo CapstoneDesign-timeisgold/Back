@@ -1,5 +1,6 @@
 package jiki.jiki.user;
 
+import jiki.jiki.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +18,7 @@ public class UserSecurityService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -25,7 +27,7 @@ public class UserSecurityService implements UserDetailsService {
         return new User(siteUser.getUsername(), siteUser.getPassword(), new ArrayList<>());
     }
 
-    public Map<String, String> authenticateUser(Map<String, String> loginRequest) {
+    public LoginResponseDto authenticateUser(Map<String, String> loginRequest) {
         String username = loginRequest.get("username");
         String password = loginRequest.get("password");
 
@@ -36,7 +38,8 @@ public class UserSecurityService implements UserDetailsService {
             throw new IllegalStateException("Invalid username or password");
         }
 
-        return Map.of("message", "Login successful!", "nickname", user.getNickname());
+        String token = jwtProvider.generateToken(user.getUsername());
+        return new LoginResponseDto(token, user.getNickname());
     }
 
     public String getUserNickname(String username) {
