@@ -38,3 +38,16 @@ out/
 
 ### Sensitive config ###
 src/main/resources/application.properties
+src/main/resources/application-*.properties
+src/main/resources/application*.yml
+src/main/resources/application*.yaml
+!src/main/resources/application.properties.example
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+*credentials*.json
+secrets/
