@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -24,11 +25,10 @@ public class FriendController {
         return ResponseEntity.status(HttpStatus.CREATED).body("Friend request sent");
     }
 
-    @GetMapping("/requests/{username}")
+    @GetMapping("/requests")
     @Operation(summary = "친구 요청 목록 조회", description = "사용자가 받은 친구 요청 목록을 조회합니다.")
-    public ResponseEntity<Set<FriendRequestListDto>> getFriendRequests(
-            @PathVariable("username") String username) {
-        Set<FriendRequestListDto> friendRequests = friendService.getFriendRequests(username);
+    public ResponseEntity<Set<FriendRequestListDto>> getFriendRequests(Authentication authentication) {
+        Set<FriendRequestListDto> friendRequests = friendService.getFriendRequests(authentication.getName());
         return ResponseEntity.ok(friendRequests);
     }
 
@@ -48,11 +48,10 @@ public class FriendController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/list/{username}")
+    @GetMapping("/list")
     @Operation(summary = "친구 목록 조회", description = "사용자의 친구 목록을 조회합니다.")
-    public ResponseEntity<Set<FriendDto>> getFriends(
-            @PathVariable("username") String username) {
-        Set<FriendDto> friends = friendService.getFriends(username);
+    public ResponseEntity<Set<FriendDto>> getFriends(Authentication authentication) {
+        Set<FriendDto> friends = friendService.getFriends(authentication.getName());
         return ResponseEntity.ok(friends);
     }
 }
