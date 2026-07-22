@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,16 +26,14 @@ public class SettlementController {
 
     @GetMapping("/money-records")
     @Operation(summary = "사용자 거래 내역 조회", description = "사용자의 벌금 및 거래 내역을 조회합니다.")
-    public ResponseEntity<List<MoneyRecordDto>> getUserMoneyRecords(
-            @RequestHeader("username") String username) {
-        List<MoneyRecordDto> records = settlementService.getUserMoneyRecords(username);
+    public ResponseEntity<List<MoneyRecordDto>> getUserMoneyRecords(Authentication authentication) {
+        List<MoneyRecordDto> records = settlementService.getUserMoneyRecords(authentication.getName());
         return ResponseEntity.ok(records);
     }
 
     @GetMapping("/{promiseId}/result")
     @Operation(summary = "벌금 정산 결과 조회", description = "약속의 벌금 정산 결과를 조회합니다.")
-    public ResponseEntity<PromiseResultDto> getPromiseResultDetails(@PathVariable("promiseId") Long promiseId,
-                                                                     @RequestHeader("username") String guestUsername) {
+    public ResponseEntity<PromiseResultDto> getPromiseResultDetails(@PathVariable("promiseId") Long promiseId) {
         PromiseResultDto settlementDetails = settlementService.getPromiseResultDetails(promiseId);
         return ResponseEntity.ok(settlementDetails);
     }

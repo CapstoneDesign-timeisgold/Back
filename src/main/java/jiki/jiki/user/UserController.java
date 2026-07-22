@@ -8,6 +8,7 @@ import jiki.jiki.settlement.SettlementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -31,15 +32,15 @@ public class UserController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "사용자 로그인 API")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> loginRequest) {
-        Map<String, String> result = userSecurityService.authenticateUser(loginRequest);
+    public ResponseEntity<LoginResponseDto> login(@RequestBody Map<String, String> loginRequest) {
+        LoginResponseDto result = userSecurityService.authenticateUser(loginRequest);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/money")
     @Operation(summary = "잔액 조회", description = "사용자의 현재 잔액을 조회합니다.")
-    public ResponseEntity<MoneyDto> getUserMoney(@RequestHeader("username") String username) {
-        MoneyDto moneyDto = settlementService.getUserMoney(username);
+    public ResponseEntity<MoneyDto> getUserMoney(Authentication authentication) {
+        MoneyDto moneyDto = settlementService.getUserMoney(authentication.getName());
         return ResponseEntity.ok(moneyDto);
     }
 }
