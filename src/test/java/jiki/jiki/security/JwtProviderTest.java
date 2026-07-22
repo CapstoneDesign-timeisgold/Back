@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JwtProviderTest {
 
+    private static final String TEST_SECRET = "DsAnSkQ0x0kklOcdMPXGmuLQCiwqRgVDQAaedL60uCE=";
+
     private final JwtProvider jwtProvider = new JwtProvider(
-            "I5pjK5xi4kGuWmwMwdSmAbG8lNH/yJ7ZcxpQC9pYD8qXTkZbmE5mtJ9hKhWLtfUOI/mvaWZqjIsr4zAMoBuZUQ==",
+            TEST_SECRET,
             86400000L
     );
 
@@ -29,7 +31,7 @@ class JwtProviderTest {
     @Test
     void rejectsExpiredToken() throws InterruptedException {
         JwtProvider shortLived = new JwtProvider(
-                "I5pjK5xi4kGuWmwMwdSmAbG8lNH/yJ7ZcxpQC9pYD8qXTkZbmE5mtJ9hKhWLtfUOI/mvaWZqjIsr4zAMoBuZUQ==",
+                TEST_SECRET,
                 1L
         );
         String token = shortLived.generateToken("testuser");
