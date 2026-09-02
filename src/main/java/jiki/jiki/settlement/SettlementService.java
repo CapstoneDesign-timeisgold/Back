@@ -2,11 +2,13 @@ package jiki.jiki.settlement;
 
 import jakarta.persistence.EntityNotFoundException;
 import jiki.jiki.promise.Participant;
+import jiki.jiki.promise.ParticipantStatus;
 import jiki.jiki.promise.Promise;
 import jiki.jiki.promise.PromiseRepository;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,9 +61,11 @@ public class SettlementService {
 
     // 약속 정산 결과를 계산하고 정산 결과를 확인 할 수 있는 기능
     @Transactional
-    public PromiseResultDto getPromiseResultDetails(Long promiseId) {
+    public PromiseResultDto getPromiseResultDetails(Long promiseId, String username) {
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
+
+        validateResultViewer(promise, username);
 
         if (!promise.isSettled()) {
             throw new IllegalStateException("Promise settlement has not been finalized yet");
@@ -147,10 +151,14 @@ public class SettlementService {
 
     // 약속이 끝났을 때 정산 기능
     @Transactional
-    public PromiseResultDto decideRewards(RewardDto rewardDto) {
+    public PromiseResultDto decideRewards(String username, RewardDto rewardDto) {
         Long promiseId = rewardDto.getPromiseId();
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
+
+        if (!promise.getCreator().getUsername().equals(username)) {
+            throw new AccessDeniedException("Only the promise creator can settle rewards");
+        }
 
         if (promise.isSettled()) {
             throw new IllegalStateException("Rewards have already been settled for this promise");
@@ -199,6 +207,17 @@ public class SettlementService {
                 .onTimeUsers(onTimeUserDtos)
                 .totalPenalty(totalPenalty)
                 .build();
+    }
+
+    private void validateResultViewer(Promise promise, String username) {
+        boolean isCreator = promise.getCreator().getUsername().equals(username);
+        boolean isAcceptedParticipant = promise.getParticipants().stream()
+                .anyMatch(participant -> participant.getStatus() == ParticipantStatus.ACCEPTED
+                        && participant.getGuest().getUsername().equals(username));
+
+        if (!isCreator && !isAcceptedParticipant) {
+            throw new AccessDeniedException("User not authorized to view this settlement result");
+        }
     }
 
     // 벌금을 관리자로 전송하고, 벌금 사용자 목록 반환

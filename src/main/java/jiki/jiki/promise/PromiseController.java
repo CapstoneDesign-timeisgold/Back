@@ -21,8 +21,9 @@ public class PromiseController {
 
     @PostMapping
     @Operation(summary = "약속 생성", description = "새로운 약속을 생성합니다.")
-    public ResponseEntity<PromiseDetailDto> createPromise(@RequestBody PromiseCreateDto promiseCreateDto) {
-        PromiseDetailDto promise = promiseService.createPromise(promiseCreateDto);
+    public ResponseEntity<PromiseDetailDto> createPromise(Authentication authentication,
+                                                           @RequestBody PromiseCreateDto promiseCreateDto) {
+        PromiseDetailDto promise = promiseService.createPromise(authentication.getName(), promiseCreateDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(promise);
     }
 
