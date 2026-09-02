@@ -22,8 +22,8 @@ public class PromiseService {
 
     //약속 생성
     @Transactional
-    public PromiseDetailDto createPromise(PromiseCreateDto promiseCreateDto) {
-        SiteUser host = userRepository.findByUsername(promiseCreateDto.getCreatorUsername())
+    public PromiseDetailDto createPromise(String creatorUsername, PromiseCreateDto promiseCreateDto) {
+        SiteUser host = userRepository.findByUsername(creatorUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         Promise promise = new Promise();

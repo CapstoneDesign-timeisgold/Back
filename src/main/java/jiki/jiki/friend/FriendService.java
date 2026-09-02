@@ -19,8 +19,8 @@ public class FriendService {
 
     //친구 초대 요청
     @Transactional
-    public void sendFriendRequest(FriendRequestDto friendRequestDto) {
-        Optional<SiteUser> user1 = userRepository.findByUsername(friendRequestDto.getUsername());
+    public void sendFriendRequest(String senderUsername, FriendRequestDto friendRequestDto) {
+        Optional<SiteUser> user1 = userRepository.findByUsername(senderUsername);
         Optional<SiteUser> user2 = userRepository.findByUsername(friendRequestDto.getUsername2());
 
         if (user1.isPresent() && user2.isPresent()) {
@@ -53,20 +53,34 @@ public class FriendService {
 
     //친구추가 수락
     @Transactional
-    public void acceptFriendRequest(Long friendId) {
+    public void acceptFriendRequest(String recipientUsername, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid friend request ID"));
+
+        validatePendingRequestRecipient(friend, recipientUsername);
         friend.setStatus(FriendStatus.ACCEPTED);
         friendRepository.save(friend);
     }
 
     //친구추가 거절
     @Transactional
-    public void declineFriendRequest(Long friendId) {
+    public void declineFriendRequest(String recipientUsername, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid friend request ID"));
+
+        validatePendingRequestRecipient(friend, recipientUsername);
         friend.setStatus(FriendStatus.DECLINED);
         friendRepository.save(friend);
+    }
+
+    private void validatePendingRequestRecipient(Friend friend, String recipientUsername) {
+        if (!friend.getUser2().getUsername().equals(recipientUsername)) {
+            throw new IllegalArgumentException("User not authorized to process this friend request");
+        }
+
+        if (friend.getStatus() != FriendStatus.PENDING) {
+            throw new IllegalStateException("Friend request is no longer pending");
+        }
     }
 
     //친구목록

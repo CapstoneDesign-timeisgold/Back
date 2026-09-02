@@ -33,15 +33,16 @@ public class SettlementController {
 
     @GetMapping("/{promiseId}/result")
     @Operation(summary = "벌금 정산 결과 조회", description = "약속의 벌금 정산 결과를 조회합니다.")
-    public ResponseEntity<PromiseResultDto> getPromiseResultDetails(@PathVariable("promiseId") Long promiseId) {
-        PromiseResultDto settlementDetails = settlementService.getPromiseResultDetails(promiseId);
+    public ResponseEntity<PromiseResultDto> getPromiseResultDetails(Authentication authentication,
+                                                                    @PathVariable("promiseId") Long promiseId) {
+        PromiseResultDto settlementDetails = settlementService.getPromiseResultDetails(promiseId, authentication.getName());
         return ResponseEntity.ok(settlementDetails);
     }
 
     @PostMapping("/reward")
     @Operation(summary = "보상 지급 결정", description = "벌금 및 보상을 정산합니다.")
-    public ResponseEntity<Void> decideRewards(@RequestBody RewardDto rewardDto) {
-        settlementService.decideRewards(rewardDto);
+    public ResponseEntity<Void> decideRewards(Authentication authentication, @RequestBody RewardDto rewardDto) {
+        settlementService.decideRewards(authentication.getName(), rewardDto);
         return ResponseEntity.noContent().build();
     }
 }

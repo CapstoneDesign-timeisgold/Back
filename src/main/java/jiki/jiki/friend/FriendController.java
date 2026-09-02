@@ -20,8 +20,9 @@ public class FriendController {
 
     @PostMapping
     @Operation(summary = "친구 요청 보내기", description = "다른 사용자에게 친구 요청을 보냅니다.")
-    public ResponseEntity<String> sendFriendRequest(@RequestBody FriendRequestDto friendRequestDto) {
-        friendService.sendFriendRequest(friendRequestDto);
+    public ResponseEntity<String> sendFriendRequest(Authentication authentication,
+                                                     @RequestBody FriendRequestDto friendRequestDto) {
+        friendService.sendFriendRequest(authentication.getName(), friendRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Friend request sent");
     }
 
@@ -34,17 +35,17 @@ public class FriendController {
 
     @PostMapping("/accept/{friendId}")
     @Operation(summary = "친구 요청 수락", description = "받은 친구 요청을 수락합니다.")
-    public ResponseEntity<String> acceptFriendRequest(
+    public ResponseEntity<String> acceptFriendRequest(Authentication authentication,
             @PathVariable("friendId") Long friendId) {
-        friendService.acceptFriendRequest(friendId);
+        friendService.acceptFriendRequest(authentication.getName(), friendId);
         return ResponseEntity.ok("Friend request accepted");
     }
 
     @PostMapping("/decline/{friendId}")
     @Operation(summary = "친구 요청 거절", description = "받은 친구 요청을 거절합니다.")
-    public ResponseEntity<Void> declineFriendRequest(
+    public ResponseEntity<Void> declineFriendRequest(Authentication authentication,
             @PathVariable("friendId") Long friendId) {
-        friendService.declineFriendRequest(friendId);
+        friendService.declineFriendRequest(authentication.getName(), friendId);
         return ResponseEntity.noContent().build();
     }
 
