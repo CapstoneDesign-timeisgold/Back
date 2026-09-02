@@ -32,8 +32,8 @@ Spring Boot 3.2.5 REST API organized into four feature packages under `src/main/
 - **friend/** — friend requests with `FriendStatus` enum (PENDING / ACCEPTED / REJECTED); relationships stored as `Friend` entity with `user1`/`user2` fields
 - **promise/** — core feature: create appointments with penalty amounts and lat/long location; `Participant` entity joins users to promises and tracks late-arrival status via `ParticipantStatus`
 - **payment/** — penalty collection and reward settlement; transaction history stored in `MoneyRecord`
-- **config/** — `SecurityConfig` (Spring Security, CSRF disabled, all routes permitted), `GlobalExceptionHandler`, `SwaggerConfig`, `WebMvcConfig` (CORS all origins)
+- **config/** — `SecurityConfig` (Spring Security, CSRF disabled, JWT-required routes), `GlobalExceptionHandler`, `SwaggerConfig`, `WebMvcConfig` (CORS all origins)
 
 Each package follows the same layered pattern: `Entity` → `Repository` (JpaRepository) → `Service` → `Controller` (@RestController) → DTOs.
 
-Authentication is header-based: controllers read `@RequestHeader("username")` rather than a security context. JWT dependencies (jjwt 0.12.3) are present but not yet wired into `SecurityConfig`.
+Authentication is JWT-based: clients send `Authorization: Bearer <token>`, and controllers obtain the authenticated username from Spring Security's `Authentication` object.

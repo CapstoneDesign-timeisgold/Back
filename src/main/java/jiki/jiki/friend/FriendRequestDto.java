@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FriendRequestDto {
-    private String username; // 요청 보내는 사람 username
     private String username2; // 요청 받는 사람 username
 }

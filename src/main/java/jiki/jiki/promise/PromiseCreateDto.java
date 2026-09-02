@@ -14,7 +14,6 @@ public class PromiseCreateDto {
     private String time;
     private int penalty;
     private String title;
-    private String creatorUsername;
     private double latitude;
     private double longitude;
 }
