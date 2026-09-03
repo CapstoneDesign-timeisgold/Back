@@ -8,6 +8,10 @@ import lombok.ToString;
 
 @Data
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(
+        name = "uk_participant_promise_guest",
+        columnNames = {"promise_id", "guest_id"}
+))
 public class Participant {
 
     @Id

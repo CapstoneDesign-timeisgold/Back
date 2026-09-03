@@ -1,6 +1,7 @@
 package jiki.jiki.settlement;
 
 import jakarta.persistence.EntityNotFoundException;
+import jiki.jiki.config.ConflictException;
 import jiki.jiki.promise.Participant;
 import jiki.jiki.promise.ParticipantStatus;
 import jiki.jiki.promise.Promise;
@@ -12,7 +13,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,10 +72,10 @@ public class SettlementService {
         validateResultViewer(promise, username);
 
         if (!promise.isSettled()) {
-            throw new IllegalStateException("Promise settlement has not been finalized yet");
+            throw new ConflictException("Promise settlement has not been finalized yet");
         }
 
-        Set<Participant> participants = promise.getParticipants();
+        Set<Participant> participants = acceptedParticipants(promise);
 
         // 지각자
         List<UserPenaltyDto> lateUsers = participants.stream()
@@ -161,10 +165,12 @@ public class SettlementService {
         }
 
         if (promise.isSettled()) {
-            throw new IllegalStateException("Rewards have already been settled for this promise");
+            throw new ConflictException("Rewards have already been settled for this promise");
         }
 
-        Set<Participant> participants = promise.getParticipants();
+        validatePromiseHasEnded(promise);
+
+        Set<Participant> participants = acceptedParticipants(promise);
         List<Participant> lateParticipants = participants.stream()
                 .filter(participant -> !participant.isArrival())
                 .collect(Collectors.toList());
@@ -217,6 +223,27 @@ public class SettlementService {
 
         if (!isCreator && !isAcceptedParticipant) {
             throw new AccessDeniedException("User not authorized to view this settlement result");
+        }
+    }
+
+    private Set<Participant> acceptedParticipants(Promise promise) {
+        return promise.getParticipants().stream()
+                .filter(participant -> participant.getStatus() == ParticipantStatus.ACCEPTED)
+                .collect(Collectors.toSet());
+    }
+
+    private void validatePromiseHasEnded(Promise promise) {
+        try {
+            LocalDateTime promiseDateTime = LocalDateTime.of(
+                    LocalDate.parse(promise.getDate()),
+                    LocalTime.parse(promise.getTime())
+            );
+
+            if (LocalDateTime.now().isBefore(promiseDateTime)) {
+                throw new ConflictException("Promise cannot be settled before its scheduled time");
+            }
+        } catch (DateTimeParseException | NullPointerException e) {
+            throw new IllegalArgumentException("Promise date and time must use ISO format (yyyy-MM-dd, HH:mm)");
         }
     }
 
