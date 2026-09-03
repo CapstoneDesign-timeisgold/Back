@@ -1,5 +1,6 @@
 package jiki.jiki.friend;
 
+import jiki.jiki.config.ConflictException;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,41 @@ class FriendServiceTest {
 
         assertEquals(FriendStatus.PENDING, friend.getStatus());
         verify(friendRepository, never()).save(friend);
+    }
+
+    @Test
+    void rejectsFriendRequestToSelf() {
+        SiteUser user = new SiteUser();
+        user.setUsername("user");
+        FriendRequestDto request = new FriendRequestDto();
+        request.setUsername2("user");
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> friendService.sendFriendRequest("user", request));
+
+        verify(friendRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void rejectsDuplicateActiveFriendRequest() {
+        SiteUser sender = new SiteUser();
+        sender.setUsername("sender");
+        SiteUser recipient = new SiteUser();
+        recipient.setUsername("recipient");
+        FriendRequestDto request = new FriendRequestDto();
+        request.setUsername2("recipient");
+        when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
+        when(userRepository.findByUsername("recipient")).thenReturn(Optional.of(recipient));
+        when(friendRepository.existsActiveRelationship(
+                org.mockito.ArgumentMatchers.eq(sender),
+                org.mockito.ArgumentMatchers.eq(recipient),
+                org.mockito.ArgumentMatchers.anyList())).thenReturn(true);
+
+        assertThrows(ConflictException.class,
+                () -> friendService.sendFriendRequest("sender", request));
+
+        verify(friendRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     private Friend pendingRequestFor(String recipientUsername) {
