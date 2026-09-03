@@ -1,5 +1,6 @@
 package jiki.jiki.friend;
 
+import jiki.jiki.config.ConflictException;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,15 +25,28 @@ public class FriendService {
         Optional<SiteUser> user1 = userRepository.findByUsername(senderUsername);
         Optional<SiteUser> user2 = userRepository.findByUsername(friendRequestDto.getUsername2());
 
-        if (user1.isPresent() && user2.isPresent()) {
-            Friend friend = new Friend();
-            friend.setUser1(user1.get());
-            friend.setUser2(user2.get());
-            friend.setStatus(FriendStatus.PENDING);
-            friendRepository.save(friend);
-        } else {
+        if (user1.isEmpty() || user2.isEmpty()) {
             throw new IllegalArgumentException("Invalid usernames provided");
         }
+
+        if (senderUsername.equals(friendRequestDto.getUsername2())) {
+            throw new IllegalArgumentException("Cannot send a friend request to yourself");
+        }
+
+        SiteUser sender = user1.get();
+        SiteUser recipient = user2.get();
+        if (friendRepository.existsActiveRelationship(
+                sender,
+                recipient,
+                List.of(FriendStatus.PENDING, FriendStatus.ACCEPTED))) {
+            throw new ConflictException("An active friend request or friendship already exists");
+        }
+
+        Friend friend = new Friend();
+        friend.setUser1(sender);
+        friend.setUser2(recipient);
+        friend.setStatus(FriendStatus.PENDING);
+        friendRepository.save(friend);
     }
 
     //친구 요청 알림

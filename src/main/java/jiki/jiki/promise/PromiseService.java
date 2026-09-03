@@ -2,6 +2,7 @@ package jiki.jiki.promise;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import jiki.jiki.config.ConflictException;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -132,8 +133,27 @@ public class PromiseService {
             throw new IllegalArgumentException("User not authorized to invite friends to this promise");
         }
 
+        if (hostUsername.equals(participantRequestDto.getGuestUsername())) {
+            throw new IllegalArgumentException("Cannot invite yourself to a promise");
+        }
+
         SiteUser guest = userRepository.findByUsername(participantRequestDto.getGuestUsername())
                 .orElseThrow(() -> new EntityNotFoundException("Invalid guest username: " + participantRequestDto.getGuestUsername()));
+
+        Participant existingParticipant = participantRepository
+                .findByPromiseIdAndGuestUsername(promise.getId(), guest.getUsername())
+                .orElse(null);
+
+        if (existingParticipant != null) {
+            if (existingParticipant.getStatus() == ParticipantStatus.DECLINED) {
+                existingParticipant.setStatus(ParticipantStatus.PENDING);
+                existingParticipant.setArrival(false);
+                existingParticipant.setHost(host);
+                participantRepository.save(existingParticipant);
+                return;
+            }
+            throw new ConflictException("User already has an active invitation or is participating in this promise");
+        }
 
         Participant participant = new Participant();
         participant.setPromise(promise);
