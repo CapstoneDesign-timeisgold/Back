@@ -3,6 +3,10 @@ https://github.com/CapstoneDesign-timeisgold
 
 ### 프로젝트 흐름
 
+### 개발 기록
+
+- [개선 및 트러블슈팅 기록](docs/IMPROVEMENT_LOG.md)
+
 ### 기능들
 - 약속 생성, 약속 초대(수락/거절), 약속 목록, 약속 세부사항, 약속 삭제, 약속 결과 조회  
 - 회원가입 / 로그인
