@@ -1,5 +1,6 @@
 package jiki.jiki.friend;
 
+import jiki.jiki.user.SiteUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,5 +29,15 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     List<Friend> findAcceptedFriendsWithUsers(
             @Param("username") String username,
             @Param("status") FriendStatus status
+    );
+
+    @Query("SELECT COUNT(f) > 0 FROM Friend f " +
+           "WHERE ((f.user1 = :user1 AND f.user2 = :user2) " +
+           "OR (f.user1 = :user2 AND f.user2 = :user1)) " +
+           "AND f.status IN :statuses")
+    boolean existsActiveRelationship(
+            @Param("user1") SiteUser user1,
+            @Param("user2") SiteUser user2,
+            @Param("statuses") List<FriendStatus> statuses
     );
 }
