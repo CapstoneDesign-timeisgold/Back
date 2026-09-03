@@ -2,6 +2,7 @@ package jiki.jiki.promise;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class PromiseController {
     @PostMapping
     @Operation(summary = "약속 생성", description = "새로운 약속을 생성합니다.")
     public ResponseEntity<PromiseDetailDto> createPromise(Authentication authentication,
-                                                           @RequestBody PromiseCreateDto promiseCreateDto) {
+                                                           @Valid @RequestBody PromiseCreateDto promiseCreateDto) {
         PromiseDetailDto promise = promiseService.createPromise(authentication.getName(), promiseCreateDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(promise);
     }
