@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,6 +27,8 @@ public class PromiseService {
     //약속 생성
     @Transactional
     public PromiseDetailDto createPromise(String creatorUsername, PromiseCreateDto promiseCreateDto) {
+        validatePromiseDateTime(promiseCreateDto);
+
         SiteUser host = userRepository.findByUsername(creatorUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
@@ -61,6 +66,15 @@ public class PromiseService {
                 .build();
 
         return dto;
+    }
+
+    private void validatePromiseDateTime(PromiseCreateDto promiseCreateDto) {
+        try {
+            LocalDate.parse(promiseCreateDto.getDate());
+            LocalTime.parse(promiseCreateDto.getTime());
+        } catch (DateTimeParseException | NullPointerException e) {
+            throw new IllegalArgumentException("Promise date and time must be valid ISO values (yyyy-MM-dd, HH:mm)");
+        }
     }
 
     //약속 목록
