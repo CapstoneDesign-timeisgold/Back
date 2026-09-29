@@ -43,7 +43,20 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform { excludeTags 'performance' }
+	useJUnitPlatform { excludeTags 'performance', 'settlement-experiment' }
+}
+
+tasks.register('settlementExperiment', Test) {
+	group = 'verification'
+	description = 'Opt-in isolated MariaDB settlement integrity/concurrency and k6 retry experiment.'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform { includeTags 'settlement-experiment' }
+	maxParallelForks = 1
+	systemProperty 'settlement.label', providers.gradleProperty('settlementLabel').getOrElse('manual')
+	systemProperty 'settlement.output', layout.projectDirectory.dir('docs/settlement-experiment/results').asFile.absolutePath
+	outputs.upToDateWhen { false }
+	testLogging { events 'passed', 'failed'; showStandardStreams = true }
 }
 
 tasks.register('performanceTest', Test) {

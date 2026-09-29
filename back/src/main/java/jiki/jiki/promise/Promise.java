@@ -42,4 +42,8 @@ public class Promise {
     private Set<Participant> participants = new HashSet<>();
 
     private boolean isSettled = false;
+
+    // Immutable response of newly finalized settlements; null for legacy settlements.
+    @Column(columnDefinition = "TEXT")
+    private String settlementResult;
 }
