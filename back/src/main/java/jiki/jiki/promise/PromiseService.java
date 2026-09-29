@@ -95,10 +95,10 @@ public class PromiseService {
         SiteUser guest = userRepository.findByUsername(guestUsername)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        List<Participant> participants = participantRepository.findByGuest(guest);
+        List<Participant> participants = participantRepository.findListWithPromiseAndCreator(
+                guest, ParticipantStatus.ACCEPTED);
 
         return participants.stream()
-                .filter(participant -> participant.getStatus() == ParticipantStatus.ACCEPTED)
                 .map(participant -> {
                     Promise promise = participant.getPromise();
                     return PromiseListDto.builder()

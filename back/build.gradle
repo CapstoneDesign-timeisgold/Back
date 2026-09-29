@@ -43,5 +43,19 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform { excludeTags 'performance' }
+}
+
+tasks.register('performanceTest', Test) {
+	description = 'Runs isolated MariaDB SQL and HTTP benchmarks (requires PERF_DB_* environment variables).'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform { includeTags 'performance' }
+	maxParallelForks = 1
+	systemProperty 'perf.label', providers.gradleProperty('perfLabel').getOrElse('manual')
+	systemProperty 'perf.seconds', providers.gradleProperty('perfSeconds').getOrElse('10')
+	systemProperty 'perf.output', layout.projectDirectory.dir('docs/performance/results').asFile.absolutePath
+	outputs.upToDateWhen { false }
+	testLogging { events 'passed', 'failed'; showStandardStreams = true }
 }

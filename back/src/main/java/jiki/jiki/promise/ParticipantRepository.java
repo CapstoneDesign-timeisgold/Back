@@ -22,6 +22,15 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     @Query("select p from Participant p where p.id = :id")
     Optional<Participant> findForUpdateById(@Param("id") Long id);
     List<Participant> findByGuest(SiteUser guest);
+
+    // List DTOs need the promise and its creator; fetch both to avoid per-row SELECTs.
+    @Query("select p from Participant p " +
+            "join fetch p.promise promise " +
+            "join fetch promise.creator " +
+            "where p.guest = :guest and p.status = :status")
+    List<Participant> findListWithPromiseAndCreator(
+            @Param("guest") SiteUser guest, @Param("status") ParticipantStatus status);
+
     Set<Participant> findByGuestAndStatus(SiteUser guest, ParticipantStatus status);
     Optional<Participant> findByPromiseIdAndGuestUsername(Long promiseId, String guestUsername);
 }
