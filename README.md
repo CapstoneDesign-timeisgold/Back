@@ -2,7 +2,7 @@
 
 **약속 참여 여부와 도착 상태에 따른 벌금과 보상 정산 서비스**
 
-- 담당 역할: 백엔드 개발, 팀장
+- 담당 역할: 백엔드, 팀장
 - 기술: Java, Spring Boot, Spring Data JPA, Spring Security, MariaDB
 - GitHub: [CapstoneDesign-timeisgold/Back](https://github.com/CapstoneDesign-timeisgold/Back)
 
