@@ -2,9 +2,9 @@
 
 **약속 참여 여부와 도착 상태에 따라 벌금과 보상을 정산하는 서비스**
 
-친구를 약속에 초대하고 참여 여부와 도착 상태를 관리하는 서비스입니다. 참여 마감 이후 정산 대상을 확정하고, 약속 결과에 따라 벌금과 보상을 계산해 내부 잔액과 거래 내역에 반영합니다.
+Spring Boot 백엔드
 
-이 저장소는 Flutter 앱과 웹에서 사용하는 Spring Boot 백엔드입니다. 실제 결제 연동이 아닌 서비스 내부 잔액을 이용한 정산을 다룹니다.
+친구를 약속에 초대하고 참여 여부와 도착 상태를 관리하는 서비스입니다. 참여 마감 이후 정산 대상을 확정하고, 약속 결과에 따라 벌금과 보상을 계산해 내부 잔액과 거래 내역에 반영합니다.
 
 ## 주요 기능
 
@@ -39,13 +39,6 @@
 
 [![Jiki 서비스 시스템 구조](assets/jiki-architecture.png)](assets/jiki-architecture.png)
 
-- Flutter 앱과 웹 브라우저에서 약속과 정산 API 요청
-- Nginx에서 Flutter 웹 빌드 파일을 제공하고 API 요청을 Spring Boot로 전달
-- Spring Boot에서 인증, 약속 참여 관리, 벌금과 보상 정산 처리
-- MariaDB에 회원, 약속, 참여 정보, 잔액과 거래 내역 저장
-
-구조도는 전체 서비스 구성이며, 이 저장소에는 백엔드와 Nginx 배포 설정이 포함되어 있습니다.
-
 ## 저장소 구성
 
 ```text
@@ -76,8 +69,8 @@ cd back
 ./gradlew test
 ```
 
-Nginx 실행과 배포 설정은 [배포 안내](back/deploy/nginx/README.md)를 참고해 주세요.
+Nginx 설정: [배포 안내](back/deploy/nginx/README.md)
 
 ## 포트폴리오
 
-참여 상태와 정산의 충돌 방지, 동시 정산 처리, 목록 조회 개선의 과정과 검증 결과는 [Jiki 포트폴리오](https://unfl1.github.io/portfolio/#jiki)에 정리했습니다.
+[구현 과정과 검증 결과](https://unfl1.github.io/portfolio/#jiki)
