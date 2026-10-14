@@ -42,16 +42,20 @@ class SettlementIntegrityTest {
         data = new SettlementTestData(em);
     }
 
-    @Test void remainderIsCreditedToAdminAndEveryBalanceMatchesTheLedger() {
+    @Test void roundedUpRewardsAreFundedByAdminAndEveryBalanceMatchesTheLedger() {
         Long id = tx(() -> {
             data.user("admin");
             return data.promise("remainder", List.of(data.user("late")),
-                    List.of(data.user("host"), data.user("two"), data.user("three")), 1000).getId();
+                    List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
         });
         PromiseResultDto result = settle("host", id);
-        assertEquals(1000, result.getTotalPenalty()); assertEquals(1, result.getAdminAmount());
-        result.getOnTimeUsers().forEach(u -> assertEquals(333, u.getRewardAmount()));
-        assertEquals(10001, money("admin")); assertEquals(5, records());
+        assertEquals(4000, result.getTotalPenalty()); assertEquals(-2, result.getAdminAmount());
+        result.getOnTimeUsers().forEach(u -> assertEquals(1334, u.getRewardAmount()));
+        assertEquals(9998, money("admin")); assertEquals(5, records());
+        assertEquals(2, jdbc.queryForObject("select amount from money_record where user_id=(select id from site_user where username='admin') and is_penalty=true", Integer.class));
+        assertEquals(result, settle("host", id));
+        assertEquals(result, service.getPromiseResultDetails(id, "host"));
+        assertEquals(5, records());
         assertLedger(50000);
     }
 
@@ -76,12 +80,98 @@ class SettlementIntegrityTest {
         assertEquals(11000, money("admin")); assertEquals(3, records()); assertLedger(20000);
     }
 
-    @Test void adminOnTimeGetsCombinedRewardAndRemainderOnce() {
+    @Test void adminOnTimeGetsRoundedRewardAndSeparateSubsidyDebit() {
         Long id = tx(() -> data.promise("admin-on-time", List.of(data.user("late")),
                 List.of(data.user("admin"), data.user("two"), data.user("three")), 1000).getId());
         PromiseResultDto result = settle("admin", id);
-        assertEquals(1, result.getAdminAmount()); assertEquals(10334, money("admin"));
+        assertEquals(-2, result.getAdminAmount()); assertEquals(10332, money("admin"));
+        result.getOnTimeUsers().forEach(u -> assertEquals(334, u.getRewardAmount()));
+        assertEquals(5, records()); assertLedger(40000);
+    }
+
+    @Test void adminLateHasPenaltyAndSubsidyCombinedWithoutDuplicateDebitRecords() {
+        Long id = tx(() -> data.promise("admin-late-subsidy", List.of(data.user("admin")),
+                List.of(data.user("host"), data.user("two"), data.user("three")), 1000).getId());
+        assertEquals(-2, settle("host", id).getAdminAmount());
+        assertEquals(8998, money("admin")); assertEquals(4, records()); assertLedger(40000);
+    }
+
+    @Test void exactDivisionNeedsNoAdminOrSubsidy() {
+        Long id = tx(() -> data.promise("exact", List.of(data.user("late")),
+                List.of(data.user("host"), data.user("two"), data.user("three")), 3000).getId());
+        PromiseResultDto result = settle("host", id);
+        assertEquals(0, result.getAdminAmount());
+        result.getOnTimeUsers().forEach(u -> assertEquals(1000, u.getRewardAmount()));
         assertEquals(4, records()); assertLedger(40000);
+    }
+
+    @Test void missingAdminForRoundingSubsidyRollsBackSettlement() {
+        Long id = tx(() -> data.promise("missing-subsidy-admin", List.of(data.user("late")),
+                List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId());
+        assertThrows(ConflictException.class, () -> settle("host", id));
+        assertUnsettled(id); assertEquals(0, records()); assertLedger(40000);
+    }
+
+    @Test void adminCanFundSubsidyFromZeroBalance() {
+        Long id = tx(() -> {
+            data.user("admin").setMoney(0);
+            return data.promise("zero-admin", List.of(data.user("late")),
+                    List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
+        });
+        assertEquals(-2, settle("host", id).getAdminAmount());
+        assertEquals(-2, money("admin"));
+        assertEquals(40000L, jdbc.queryForObject("select sum(money) from site_user", Long.class));
+    }
+
+    @Test void subsidyUnderflowRollsBackRewardsAndPenalties() {
+        Long id = tx(() -> {
+            data.user("admin").setMoney(Integer.MIN_VALUE);
+            return data.promise("subsidy-underflow", List.of(data.user("late")),
+                    List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
+        });
+        assertThrows(ConflictException.class, () -> settle("host", id));
+        assertUnsettled(id); assertEquals(0, records());
+        assertEquals(Integer.MIN_VALUE, money("admin"));
+        assertEquals(10000, money("late")); assertEquals(10000, money("host"));
+    }
+
+    @Test void savedSettlementFromOldRoundingPolicyIsReturnedUnchanged() throws Exception {
+        Long id = tx(() -> {
+            data.user("admin");
+            return data.promise("old-policy", List.of(data.user("late")),
+                    List.of(data.user("host"), data.user("two"), data.user("three")), 1000).getId();
+        });
+        PromiseResultDto saved = new PromiseResultDto(id,
+                List.of(new UserPenaltyDto("late", 1000, 0)),
+                List.of(new UserPenaltyDto("host", 0, 333), new UserPenaltyDto("two", 0, 333),
+                        new UserPenaltyDto("three", 0, 333)), 1000, 1);
+        String snapshot = new ObjectMapper().writeValueAsString(saved);
+        tx(() -> {
+            Promise promise = em.find(Promise.class, id);
+            promise.setSettled(true);
+            promise.setSettlementResult(snapshot);
+            return null;
+        });
+        assertEquals(saved, settle("host", id));
+        assertEquals(saved, service.getPromiseResultDetails(id, "host"));
+        assertEquals(0, records()); assertLedger(50000);
+    }
+
+    @Test void roundingMaximumPoolDoesNotOverflowIntermediateArithmetic() {
+        Long id = tx(() -> {
+            data.user("admin").setMoney(0);
+            SiteUser late = data.user("late"); late.setMoney(Integer.MAX_VALUE);
+            List<SiteUser> onTime = List.of(data.user("host"), data.user("two"), data.user("three"));
+            onTime.forEach(u -> u.setMoney(0));
+            return data.promise("max-pool", List.of(late), onTime, Integer.MAX_VALUE).getId();
+        });
+        PromiseResultDto result = settle("host", id);
+        assertEquals(Integer.MAX_VALUE, result.getTotalPenalty());
+        assertEquals(-2, result.getAdminAmount());
+        result.getOnTimeUsers().forEach(u -> assertEquals(715827883, u.getRewardAmount()));
+        assertEquals(-2, money("admin")); assertEquals(0, money("late"));
+        assertEquals(5, records());
+        assertEquals((long) Integer.MAX_VALUE, jdbc.queryForObject("select sum(money) from site_user", Long.class));
     }
 
     @Test void missingAdminRollsBackTheWholeSettlement() {
