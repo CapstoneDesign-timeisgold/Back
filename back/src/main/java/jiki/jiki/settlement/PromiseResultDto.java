@@ -16,5 +16,6 @@ public class PromiseResultDto {
     private List<UserPenaltyDto> lateUsers;
     private List<UserPenaltyDto> onTimeUsers;
     private int totalPenalty;
+    // Signed adjustment outside participant rewards/penalties: credit (+), rounding subsidy (-).
     private int adminAmount;
 }
