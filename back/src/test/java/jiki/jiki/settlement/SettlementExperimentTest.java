@@ -66,8 +66,8 @@ class SettlementExperimentTest {
         service.decideRewards("r-host", new RewardDto(remainder));
         long missing = sumBefore - sumBalances();
         metrics.put("remainder_missing_amount", missing);
-        metrics.put("remainder_admin_credit", money("admin") - 10_000);
-        if (after) { assertEquals(0, missing); assertEquals(10_001, money("admin")); }
+        metrics.put("rounding_admin_adjustment", money("admin") - 10_000);
+        if (after) { assertEquals(0, missing); assertEquals(9_998, money("admin")); }
 
         Long allLate = tx.execute(s -> data.promise("all-late", List.of(data.user("all-late-host")), List.of(), 1000).getId());
         long recordsBefore = jdbc.queryForObject("select count(*) from money_record m join site_user u on u.id=m.user_id where u.username='admin'", Long.class);
@@ -175,9 +175,9 @@ class SettlementExperimentTest {
                     })));
                 }
                 for (Future<?> future : futures) future.get(30, TimeUnit.SECONDS);
-                assertEquals(9333, money(prefix + "-a")); assertEquals(9333, money(prefix + "-b"));
-                assertEquals(10666, money(prefix + "-c")); assertEquals(10666, money(prefix + "-d"));
-                assertEquals(adminBefore + 2, money("admin")); assertEquals(totalBefore, sumBalances());
+                assertEquals(9334, money(prefix + "-a")); assertEquals(9334, money(prefix + "-b"));
+                assertEquals(10668, money(prefix + "-c")); assertEquals(10668, money(prefix + "-d"));
+                assertEquals(adminBefore - 4, money("admin")); assertEquals(totalBefore, sumBalances());
                 assertEquals(10L, jdbc.queryForObject("select count(*) from money_record where promise_id in (?,?)", Long.class, ids.get(0), ids.get(1)));
             }
         } finally { pool.shutdownNow(); }

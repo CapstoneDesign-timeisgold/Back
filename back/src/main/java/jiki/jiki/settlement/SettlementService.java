@@ -145,12 +145,14 @@ public class SettlementService {
         List<Participant> late = participants.stream().filter(p -> !p.isArrival()).toList();
         List<Participant> onTime = participants.stream().filter(Participant::isArrival).toList();
         int total = checkedMultiply(late.size(), promise.getPenalty());
-        int reward = onTime.isEmpty() ? 0 : total / onTime.size();
-        int adminAmount = onTime.isEmpty() ? total : total % onTime.size();
+        int remainder = onTime.isEmpty() ? 0 : total % onTime.size();
+        int reward = onTime.isEmpty() ? 0 : total / onTime.size() + (remainder == 0 ? 0 : 1);
+        // Positive: the all-late pool is credited. Negative: admin funds rounded-up rewards.
+        int adminAmount = onTime.isEmpty() ? total : (remainder == 0 ? 0 : remainder - onTime.size());
         Map<Long, SiteUser> accounts = new TreeMap<>();
         participants.forEach(p -> accounts.put(p.getGuest().getId(), p.getGuest()));
         SiteUser admin = null;
-        if (adminAmount > 0) {
+        if (adminAmount != 0) {
             admin = userRepository.findByUsername("admin")
                     .orElseThrow(() -> new ConflictException("Settlement requires an admin account"));
             accounts.put(admin.getId(), admin);
@@ -164,14 +166,16 @@ public class SettlementService {
                     .orElseThrow(() -> new EntityNotFoundException("Invalid account: " + id)));
         }
         LocalDateTime settledAt = LocalDateTime.now(clock);
-        for (Participant p : late) applyTransfer(promise, p.getGuest(), promise.getPenalty(), true, settledAt, balances);
-        boolean adminRewardRecorded = false;
-        for (Participant p : onTime) {
+        boolean adminDebitRecorded = false;
+        for (Participant p : late) {
             boolean isAdmin = admin != null && p.getGuest().getId().equals(admin.getId());
-            applyTransfer(promise, p.getGuest(), reward + (isAdmin ? adminAmount : 0), false, settledAt, balances);
-            adminRewardRecorded |= isAdmin;
+            int debit = checkedAdd(promise.getPenalty(), isAdmin && adminAmount < 0 ? -adminAmount : 0);
+            applyTransfer(promise, p.getGuest(), debit, true, settledAt, balances);
+            adminDebitRecorded |= isAdmin;
         }
-        if (adminAmount > 0 && !adminRewardRecorded) applyTransfer(promise, admin, adminAmount, false, settledAt, balances);
+        for (Participant p : onTime) applyTransfer(promise, p.getGuest(), reward, false, settledAt, balances);
+        if (adminAmount < 0 && !adminDebitRecorded) applyTransfer(promise, admin, -adminAmount, true, settledAt, balances);
+        if (adminAmount > 0) applyTransfer(promise, admin, adminAmount, false, settledAt, balances);
 
         PromiseResultDto result = PromiseResultDto.builder().promiseId(promise.getId())
                 .lateUsers(late.stream().map(p -> new UserPenaltyDto(p.getGuest().getUsername(), promise.getPenalty(), 0)).toList())
@@ -203,6 +207,11 @@ public class SettlementService {
     private int checkedMultiply(int count, int penalty) {
         try { return Math.multiplyExact(count, penalty); }
         catch (ArithmeticException e) { throw new ConflictException("Total penalty exceeds supported range"); }
+    }
+
+    private int checkedAdd(int amount, int extra) {
+        try { return Math.addExact(amount, extra); }
+        catch (ArithmeticException e) { throw new ConflictException("Settlement amount exceeds supported range"); }
     }
 
     private PromiseResultDto readResult(Promise promise) {
