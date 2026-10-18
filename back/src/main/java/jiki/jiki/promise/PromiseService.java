@@ -126,7 +126,7 @@ public class PromiseService {
                 .anyMatch(participant -> participant.getGuest().equals(guest));
 
         if (!isParticipant) {
-            throw new IllegalArgumentException("User not authorized to view this promise detail");
+            throw new AccessDeniedException("User not authorized to view this promise detail");
         }
 
         Set<String> participantUsernames = promise.getParticipants().stream()
@@ -169,7 +169,7 @@ public class PromiseService {
                 .orElseThrow(() -> new EntityNotFoundException("Invalid username: " + hostUsername));
 
         if (!promise.getCreator().equals(host)) {
-            throw new IllegalArgumentException("User not authorized to invite friends to this promise");
+            throw new AccessDeniedException("User not authorized to invite friends to this promise");
         }
 
         if (hostUsername.equals(participantRequestDto.getGuestUsername())) {
@@ -280,7 +280,7 @@ public class PromiseService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         if (!promise.getCreator().equals(host)) {
-            throw new IllegalArgumentException("User not authorized to delete this promise");
+            throw new AccessDeniedException("User not authorized to delete this promise");
         }
 
         requireParticipationOpen(promise);
@@ -299,7 +299,7 @@ public class PromiseService {
 
         // 주최자 혹은 해당 참여자 본인만 지각 상태를 업데이트할 수 있도록 허용
         if (!participant.getHost().equals(user) && !participant.getPromise().getCreator().equals(user) && !participant.getGuest().equals(user)) {
-            throw new IllegalArgumentException("User not authorized to update late status for this participant");
+            throw new AccessDeniedException("User not authorized to update late status for this participant");
         }
 
         requireNotSettled(promise);

@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -23,6 +26,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", "Invalid request body or date/time format"));
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidParameter(MethodArgumentTypeMismatchException e) {
+        return ResponseEntity.badRequest().body(Map.of("error", "Invalid request parameter"));
+    }
+
     // 리소스를 찾지 못한 경우 (404)
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException e) {
@@ -30,7 +38,7 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", e.getMessage()));
     }
 
-    // 잘못된 인자 / 중복 데이터 (400)
+    // 잘못된 요청 (400)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -50,10 +58,10 @@ public class GlobalExceptionHandler {
     }
 
     // 인증 실패 (401)
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthentication(AuthenticationException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", e.getMessage()));
+                .body(Map.of("error", "Invalid username or password"));
     }
 
     // @Valid 유효성 검사 실패 (400)
@@ -70,6 +78,10 @@ public class GlobalExceptionHandler {
     // 그 외 예상치 못한 오류 (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneral(Exception e) {
+        // Preserve Spring MVC statuses such as invalid path parameters (400), 404, 405 and 415.
+        if (e instanceof ErrorResponse error) {
+            return ResponseEntity.status(error.getStatusCode()).body(Map.of("error", "Invalid request"));
+        }
         log.error("Unhandled request error", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Internal server error"));
