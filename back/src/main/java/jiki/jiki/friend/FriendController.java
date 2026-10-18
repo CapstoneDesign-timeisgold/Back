@@ -1,5 +1,7 @@
 package jiki.jiki.friend;
 
+import jakarta.validation.Valid;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,7 @@ public class FriendController {
     @PostMapping
     @Operation(summary = "친구 요청 보내기", description = "다른 사용자에게 친구 요청을 보냅니다.")
     public ResponseEntity<String> sendFriendRequest(Authentication authentication,
-                                                     @RequestBody FriendRequestDto friendRequestDto) {
+                                                     @Valid @RequestBody FriendRequestDto friendRequestDto) {
         friendService.sendFriendRequest(authentication.getName(), friendRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Friend request sent");
     }

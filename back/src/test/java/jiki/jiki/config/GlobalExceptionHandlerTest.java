@@ -1,23 +1,35 @@
 package jiki.jiki.config;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class GlobalExceptionHandlerTest {
+    @Test void unexpectedIllegalStateIs500AndDoesNotExposeInternalDetails() throws Exception {
+        var mvc = MockMvcBuilders.standaloneSetup(new BrokenController())
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+        mvc.perform(get("/broken")).andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("error").value("Internal server error"));
+    }
 
-    @Test
-    void unexpectedErrorDoesNotExposeExceptionDetails() {
-        GlobalExceptionHandler handler = new GlobalExceptionHandler();
-        Exception failure = new RuntimeException("jdbc:mariadb://internal-db/private_schema");
+    @Test void unexpectedRuntimeErrorDoesNotExposeExceptionDetails() {
+        var response = new GlobalExceptionHandler().handleGeneral(
+                new RuntimeException("jdbc:mariadb://internal-db/private_schema"));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Map.of("error", "Internal server error"), response.getBody());
+    }
 
-        ResponseEntity<Map<String, String>> response = handler.handleGeneral(failure);
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals(Map.of("error", "Internal server error"), response.getBody());
+    @RestController
+    static class BrokenController {
+        @GetMapping("/broken")
+        String broken() {
+            throw new IllegalStateException("private SQL connection details");
+        }
     }
 }

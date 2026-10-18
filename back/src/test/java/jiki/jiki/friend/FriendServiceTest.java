@@ -45,7 +45,7 @@ class FriendServiceTest {
         Friend friend = pendingRequestFor("recipient");
         when(friendRepository.findById(1L)).thenReturn(Optional.of(friend));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 () -> friendService.declineFriendRequest("attacker", 1L));
 
         assertEquals(FriendStatus.PENDING, friend.getStatus());
