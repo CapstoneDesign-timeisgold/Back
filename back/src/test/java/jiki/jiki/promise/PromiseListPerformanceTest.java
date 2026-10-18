@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Opt-in only. Refuses to initialize Hibernate against any non-benchmark schema. */
 @Tag("performance")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "settlement.account.initialize=false", "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.open-in-view=false",
         "spring.jpa.show-sql=false",
         "spring.jpa.properties.hibernate.generate_statistics=false",

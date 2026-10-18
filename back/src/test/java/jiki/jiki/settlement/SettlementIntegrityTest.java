@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-@Import({SettlementService.class, TimeConfig.class, SettlementIntegrityTest.JsonConfig.class})
+@Import({SettlementService.class, SettlementAccountService.class, jiki.jiki.config.PasswordConfig.class, TimeConfig.class, SettlementIntegrityTest.JsonConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class SettlementIntegrityTest {
     @TestConfiguration static class JsonConfig {
@@ -44,7 +44,7 @@ class SettlementIntegrityTest {
 
     @Test void roundedUpRewardsAreFundedByAdminAndEveryBalanceMatchesTheLedger() {
         Long id = tx(() -> {
-            data.user("admin");
+            data.settlementAccount();
             return data.promise("remainder", List.of(data.user("late")),
                     List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
         });
@@ -61,7 +61,7 @@ class SettlementIntegrityTest {
 
     @Test void allLateCreditsAdminAndRecordsTheCredit() {
         Long id = tx(() -> {
-            data.user("admin");
+            data.settlementAccount();
             return data.promise("all-late", List.of(data.user("host"), data.user("late")), List.of(), 1000).getId();
         });
         assertEquals(2000, settle("host", id).getAdminAmount());
@@ -74,15 +74,39 @@ class SettlementIntegrityTest {
         assertEquals(2, records()); assertLedger(20000);
     }
 
+    @Test void settlementUsesSystemMarkerInsteadOfTheAdminUsername() {
+        Long id = tx(() -> {
+            data.user("treasury").setSystemAccountType(jiki.jiki.user.SystemAccountType.SETTLEMENT);
+            data.user("admin");
+            return data.promise("system-account", List.of(data.user("late")),
+                    List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
+        });
+        assertEquals(-2, settle("host", id).getAdminAmount());
+        assertEquals(9998, money("treasury"));
+        assertEquals(10000, money("admin"));
+        assertEquals(9998, service.getAdminMoney().getMoney());
+        assertLedger(60000);
+    }
+
+    @Test void ordinaryAdminCannotReceiveTheAllLatePool() {
+        Long id = tx(() -> {
+            data.user("admin");
+            return data.promise("impostor-admin", List.of(data.user("host")), List.of(), 1000).getId();
+        });
+        assertThrows(ConflictException.class, () -> settle("host", id));
+        assertThrows(ConflictException.class, service::getAdminMoney);
+        assertUnsettled(id); assertEquals(0, records()); assertLedger(20000);
+    }
+
     @Test void adminCanBeLateAndReceiveThePoolWithoutLosingEitherEntry() {
-        Long id = tx(() -> data.promise("admin-late", List.of(data.user("admin"), data.user("late")), List.of(), 1000).getId());
+        Long id = tx(() -> data.promise("admin-late", List.of(data.settlementAccount(), data.user("late")), List.of(), 1000).getId());
         settle("admin", id);
         assertEquals(11000, money("admin")); assertEquals(3, records()); assertLedger(20000);
     }
 
     @Test void adminOnTimeGetsRoundedRewardAndSeparateSubsidyDebit() {
         Long id = tx(() -> data.promise("admin-on-time", List.of(data.user("late")),
-                List.of(data.user("admin"), data.user("two"), data.user("three")), 1000).getId());
+                List.of(data.settlementAccount(), data.user("two"), data.user("three")), 1000).getId());
         PromiseResultDto result = settle("admin", id);
         assertEquals(-2, result.getAdminAmount()); assertEquals(10332, money("admin"));
         result.getOnTimeUsers().forEach(u -> assertEquals(334, u.getRewardAmount()));
@@ -90,7 +114,7 @@ class SettlementIntegrityTest {
     }
 
     @Test void adminLateHasPenaltyAndSubsidyCombinedWithoutDuplicateDebitRecords() {
-        Long id = tx(() -> data.promise("admin-late-subsidy", List.of(data.user("admin")),
+        Long id = tx(() -> data.promise("admin-late-subsidy", List.of(data.settlementAccount()),
                 List.of(data.user("host"), data.user("two"), data.user("three")), 1000).getId());
         assertEquals(-2, settle("host", id).getAdminAmount());
         assertEquals(8998, money("admin")); assertEquals(4, records()); assertLedger(40000);
@@ -114,7 +138,7 @@ class SettlementIntegrityTest {
 
     @Test void adminCanFundSubsidyFromZeroBalance() {
         Long id = tx(() -> {
-            data.user("admin").setMoney(0);
+            data.settlementAccount().setMoney(0);
             return data.promise("zero-admin", List.of(data.user("late")),
                     List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
         });
@@ -125,7 +149,7 @@ class SettlementIntegrityTest {
 
     @Test void subsidyUnderflowRollsBackRewardsAndPenalties() {
         Long id = tx(() -> {
-            data.user("admin").setMoney(Integer.MIN_VALUE);
+            data.settlementAccount().setMoney(Integer.MIN_VALUE);
             return data.promise("subsidy-underflow", List.of(data.user("late")),
                     List.of(data.user("host"), data.user("two"), data.user("three")), 4000).getId();
         });
@@ -137,7 +161,7 @@ class SettlementIntegrityTest {
 
     @Test void savedSettlementFromOldRoundingPolicyIsReturnedUnchanged() throws Exception {
         Long id = tx(() -> {
-            data.user("admin");
+            data.settlementAccount();
             return data.promise("old-policy", List.of(data.user("late")),
                     List.of(data.user("host"), data.user("two"), data.user("three")), 1000).getId();
         });
@@ -159,7 +183,7 @@ class SettlementIntegrityTest {
 
     @Test void roundingMaximumPoolDoesNotOverflowIntermediateArithmetic() {
         Long id = tx(() -> {
-            data.user("admin").setMoney(0);
+            data.settlementAccount().setMoney(0);
             SiteUser late = data.user("late"); late.setMoney(Integer.MAX_VALUE);
             List<SiteUser> onTime = List.of(data.user("host"), data.user("two"), data.user("three"));
             onTime.forEach(u -> u.setMoney(0));
