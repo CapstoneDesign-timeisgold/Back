@@ -31,7 +31,7 @@ public class PromiseController {
     @PostMapping("/invitation")
     @Operation(summary = "친구 초대", description = "약속에 친구를 초대합니다.")
     public ResponseEntity<String> inviteFriends(Authentication authentication,
-                                                @RequestBody ParticipantRequestDto participantRequestDto) {
+                                                @Valid @RequestBody ParticipantRequestDto participantRequestDto) {
         promiseService.inviteParticipant(authentication.getName(), participantRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Friends invited to the promise");
     }
@@ -101,7 +101,7 @@ public class PromiseController {
     @PostMapping("/update-late-status")
     @Operation(summary = "지각 상태 업데이트", description = "약속의 지각 여부를 업데이트합니다.")
     public ResponseEntity<Void> updateLateStatus(Authentication authentication,
-                                                 @RequestBody UpdateLateStatusDto updateLateStatusDto) {
+                                                 @Valid @RequestBody UpdateLateStatusDto updateLateStatusDto) {
         promiseService.updateLateStatus(updateLateStatusDto, authentication.getName());
         return ResponseEntity.noContent().build();
     }

@@ -32,7 +32,7 @@ public class UserController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "사용자 로그인 API")
-    public ResponseEntity<LoginResponseDto> login(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody UserLoginDto loginRequest) {
         LoginResponseDto result = userSecurityService.authenticateUser(loginRequest);
         return ResponseEntity.ok(result);
     }

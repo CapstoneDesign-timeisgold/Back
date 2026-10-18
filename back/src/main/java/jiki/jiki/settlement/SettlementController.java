@@ -1,5 +1,7 @@
 package jiki.jiki.settlement;
 
+import jakarta.validation.Valid;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +43,7 @@ public class SettlementController {
 
     @PostMapping("/reward")
     @Operation(summary = "보상 지급 결정", description = "벌금 및 보상을 정산합니다.")
-    public ResponseEntity<Void> decideRewards(Authentication authentication, @RequestBody RewardDto rewardDto) {
+    public ResponseEntity<Void> decideRewards(Authentication authentication, @Valid @RequestBody RewardDto rewardDto) {
         settlementService.decideRewards(authentication.getName(), rewardDto);
         return ResponseEntity.noContent().build();
     }
