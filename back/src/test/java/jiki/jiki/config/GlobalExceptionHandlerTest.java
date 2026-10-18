@@ -16,6 +16,15 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("error").value("Internal server error"));
     }
 
+    @Test void unexpectedRuntimeErrorDoesNotExposeExceptionDetails() {
+        var response = new GlobalExceptionHandler().handleGeneral(
+                new RuntimeException("jdbc:mariadb://internal-db/private_schema"));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                java.util.Map.of("error", "Internal server error"), response.getBody());
+    }
+
     @RestController
     static class BrokenController {
         @GetMapping("/broken")
