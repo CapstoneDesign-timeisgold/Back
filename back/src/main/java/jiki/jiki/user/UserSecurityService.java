@@ -6,11 +6,11 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
@@ -30,19 +30,19 @@ public class UserSecurityService implements UserDetailsService {
         return new User(siteUser.getUsername(), siteUser.getPassword(), new ArrayList<>());
     }
 
-    public LoginResponseDto authenticateUser(Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
-        String password = loginRequest.get("password");
+    public LoginResponseDto authenticateUser(UserLoginDto loginRequest) {
+        String username = loginRequest.getUsername();
+        String password = loginRequest.getPassword();
 
         SiteUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
+                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
 
         if (user.isSystemAccount()) {
-            throw new IllegalStateException("Invalid username or password");
+            throw new BadCredentialsException("Invalid username or password");
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalStateException("Invalid username or password");
+            throw new BadCredentialsException("Invalid username or password");
         }
 
         String token = jwtProvider.generateToken(user.getUsername());

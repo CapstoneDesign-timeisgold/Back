@@ -1,7 +1,8 @@
 package jiki.jiki.user;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,17 +15,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserSignupDto {
 
-    @NotEmpty
+    @NotBlank
+    @Size(max = 255)
     private String username;
 
-    @NotEmpty
+    @NotBlank
     private String password1;
 
-    @NotEmpty
+    @NotBlank
+    @Size(max = 255)
     private String nickname;
 
-    @NotEmpty
+    @NotBlank
     @Email
+    @Size(max = 255)
     private String email;
 
 }

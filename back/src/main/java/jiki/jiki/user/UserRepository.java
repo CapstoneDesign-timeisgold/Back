@@ -11,6 +11,8 @@ public interface UserRepository extends JpaRepository<SiteUser, Long> {
 
     Optional<SiteUser> findBySystemAccountType(SystemAccountType type);
     Optional<SiteUser> findByUsernameIgnoreCase(String username);
+    boolean existsByNickname(String nickname);
+    boolean existsByEmail(String email);
     // Scalar locking read bypasses potentially stale managed SiteUser.money state.
     @Query(value = "select money from site_user where id = :id for update", nativeQuery = true)
     Optional<Integer> lockBalanceById(@Param("id") Long id);

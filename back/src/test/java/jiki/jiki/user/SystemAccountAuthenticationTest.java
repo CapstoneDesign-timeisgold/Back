@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Map;
+import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,8 +24,8 @@ class SystemAccountAuthenticationTest {
 
     @Test void systemAccountCannotLoginEvenWithItsOldPassword() {
         systemAccount();
-        assertThrows(IllegalStateException.class,
-                () -> security.authenticateUser(Map.of("username", "treasury", "password", "old-password")));
+        assertThrows(BadCredentialsException.class,
+                () -> security.authenticateUser(new UserLoginDto("treasury", "old-password")));
         verifyNoInteractions(passwords, jwt);
     }
 
@@ -40,7 +40,7 @@ class SystemAccountAuthenticationTest {
         when(users.findByUsername("member")).thenReturn(Optional.of(member));
         when(passwords.matches("password", "encoded")).thenReturn(true);
         when(jwt.generateToken("member")).thenReturn("token");
-        assertEquals("token", security.authenticateUser(Map.of("username", "member", "password", "password")).getToken());
+        assertEquals("token", security.authenticateUser(new UserLoginDto("member", "password")).getToken());
         assertEquals("member", security.loadUserByUsername("member").getUsername());
     }
 

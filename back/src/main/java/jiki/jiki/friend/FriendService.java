@@ -1,6 +1,8 @@
 package jiki.jiki.friend;
 
 import jiki.jiki.config.ConflictException;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,7 @@ public class FriendService {
         Optional<SiteUser> user2 = userRepository.findByUsername(friendRequestDto.getUsername2());
 
         if (user1.isEmpty() || user2.isEmpty()) {
-            throw new IllegalArgumentException("Invalid usernames provided");
+            throw new EntityNotFoundException("User not found");
         }
 
         if (senderUsername.equals(friendRequestDto.getUsername2())) {
@@ -70,7 +72,7 @@ public class FriendService {
     @Transactional
     public void acceptFriendRequest(String recipientUsername, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid friend request ID"));
+                .orElseThrow(() -> new EntityNotFoundException("Invalid friend request ID"));
 
         validatePendingRequestRecipient(friend, recipientUsername);
         friend.setStatus(FriendStatus.ACCEPTED);
@@ -81,7 +83,7 @@ public class FriendService {
     @Transactional
     public void declineFriendRequest(String recipientUsername, Long friendId) {
         Friend friend = friendRepository.findById(friendId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid friend request ID"));
+                .orElseThrow(() -> new EntityNotFoundException("Invalid friend request ID"));
 
         validatePendingRequestRecipient(friend, recipientUsername);
         friend.setStatus(FriendStatus.DECLINED);
@@ -90,11 +92,11 @@ public class FriendService {
 
     private void validatePendingRequestRecipient(Friend friend, String recipientUsername) {
         if (!friend.getUser2().getUsername().equals(recipientUsername)) {
-            throw new IllegalArgumentException("User not authorized to process this friend request");
+            throw new AccessDeniedException("User not authorized to process this friend request");
         }
 
         if (friend.getStatus() != FriendStatus.PENDING) {
-            throw new IllegalStateException("Friend request is no longer pending");
+            throw new ConflictException("Friend request is no longer pending");
         }
     }
 
