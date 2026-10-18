@@ -24,6 +24,9 @@ public class UserSecurityService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         SiteUser siteUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
+        if (siteUser.isSystemAccount()) {
+            throw new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username);
+        }
         return new User(siteUser.getUsername(), siteUser.getPassword(), new ArrayList<>());
     }
 
@@ -33,6 +36,10 @@ public class UserSecurityService implements UserDetailsService {
 
         SiteUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
+
+        if (user.isSystemAccount()) {
+            throw new IllegalStateException("Invalid username or password");
+        }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new IllegalStateException("Invalid username or password");

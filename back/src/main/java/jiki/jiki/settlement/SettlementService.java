@@ -33,6 +33,7 @@ public class SettlementService {
     private final MoneyRecordRepository moneyRecordRepository;
     private final Clock clock;
     private final ObjectMapper objectMapper;
+    private final SettlementAccountService settlementAccounts;
 
     // 개인 포인트 조회
     @Transactional(readOnly = true)
@@ -42,11 +43,10 @@ public class SettlementService {
         return MoneyDto.builder().money(user.getMoney()).build();
     }
 
-    // "admin"의 총 금액(전체 모금액)
+    // 정산 전용 계정의 잔액
     @Transactional(readOnly = true)
     public MoneyDto getAdminMoney() {
-        SiteUser admin = userRepository.findByUsername("admin")
-                .orElseThrow(() -> new EntityNotFoundException("Admin user not found"));
+        SiteUser admin = settlementAccounts.getAccount();
         return MoneyDto.builder().money(admin.getMoney()).build();
     }
 
@@ -153,8 +153,7 @@ public class SettlementService {
         participants.forEach(p -> accounts.put(p.getGuest().getId(), p.getGuest()));
         SiteUser admin = null;
         if (adminAmount != 0) {
-            admin = userRepository.findByUsername("admin")
-                    .orElseThrow(() -> new ConflictException("Settlement requires an admin account"));
+            admin = settlementAccounts.getAccount();
             accounts.put(admin.getId(), admin);
         }
 

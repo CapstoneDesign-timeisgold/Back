@@ -18,6 +18,12 @@ class SettlementTestData {
         return u;
     }
 
+    SiteUser settlementAccount() {
+        SiteUser account = user("admin");
+        account.setSystemAccountType(jiki.jiki.user.SystemAccountType.SETTLEMENT);
+        return account;
+    }
+
     Promise promise(String title, List<SiteUser> late, List<SiteUser> onTime, int penalty) {
         Promise p = new Promise();
         p.setTitle(title); p.setDate("2020-01-01"); p.setTime("12:00"); p.setPenalty(penalty);

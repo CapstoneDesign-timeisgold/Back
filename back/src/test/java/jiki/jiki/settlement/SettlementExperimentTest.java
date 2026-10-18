@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("settlement-experiment")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.open-in-view=false",
+        "settlement.account.initialize=false", "spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.open-in-view=false",
         "spring.jpa.show-sql=false", "spring.datasource.hikari.maximum-pool-size=10",
         "logging.level.root=WARN", "logging.level.org.hibernate=ERROR",
         "jwt.secret=cGVyZm9ybWFuY2UtdGVzdC1vbmx5LWtleS0zMmJ5dGVzISE=", "jwt.expiration=3600000"
@@ -53,7 +53,7 @@ class SettlementExperimentTest {
         Files.createDirectories(out.getParent()); Files.createDirectory(out);
         TransactionTemplate tx = new TransactionTemplate(manager);
         SettlementTestData data = new SettlementTestData(em);
-        tx.executeWithoutResult(s -> data.user("admin"));
+        tx.executeWithoutResult(s -> data.settlementAccount());
         Map<String, Object> metrics = new LinkedHashMap<>();
         metrics.put("time", java.time.Instant.now().toString());
         metrics.put("java", System.getProperty("java.version"));
