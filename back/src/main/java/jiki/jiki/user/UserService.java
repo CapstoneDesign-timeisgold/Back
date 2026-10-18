@@ -13,6 +13,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public Map<String, String> createUser(UserSignupDto userCreateForm) {
+        if (SystemAccountType.isReservedUsername(userCreateForm.getUsername())) {
+            throw new IllegalArgumentException("시스템 계정으로 예약된 아이디입니다.");
+        }
         if (userRepository.findByUsername(userCreateForm.getUsername()).isPresent()) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }

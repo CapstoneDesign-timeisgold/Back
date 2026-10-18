@@ -12,6 +12,8 @@ import java.util.Set;
 
 @Data
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_user_system_account_type",
+        columnNames = "system_account_type"))
 public class SiteUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +32,15 @@ public class SiteUser {
     private String email;
 
     private int money;
+
+    // Ordinary members have NULL; each system account type can belong to only one user.
+    @Enumerated(EnumType.STRING)
+    @Column(length = 32, columnDefinition = "varchar(32)")
+    private SystemAccountType systemAccountType;
+
+    public boolean isSystemAccount() {
+        return systemAccountType != null;
+    }
 
     @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude
