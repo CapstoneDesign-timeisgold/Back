@@ -20,6 +20,8 @@ public class PromiseDetailDto {
     private LocalDateTime participationDeadline;
     private boolean participationOpen;
     private boolean participationDeadlineEditable;
+    private LocalDateTime arrivalOpensAt;
+    private boolean arrivalConfirmationOpen;
     private double latitude;
     private double longitude;
     private int penalty;

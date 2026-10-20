@@ -99,7 +99,7 @@ public class PromiseController {
     }
 
     @PostMapping("/update-late-status")
-    @Operation(summary = "지각 상태 업데이트", description = "약속의 지각 여부를 업데이트합니다.")
+    @Operation(summary = "도착 확인", description = "약속 10분 전부터 본인의 도착을 확인합니다. 서버 시각이 약속 시작을 넘으면 지각으로 기록합니다.")
     public ResponseEntity<Void> updateLateStatus(Authentication authentication,
                                                  @Valid @RequestBody UpdateLateStatusDto updateLateStatusDto) {
         promiseService.updateLateStatus(updateLateStatusDto, authentication.getName());

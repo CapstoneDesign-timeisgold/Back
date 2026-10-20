@@ -86,7 +86,7 @@ public class SettlementService {
 
         // 지각자
         List<UserPenaltyDto> lateUsers = participants.stream()
-                .filter(participant -> !participant.isArrival())
+                .filter(participant -> !participant.isOnTime())
                 .map(participant -> {
                     SiteUser lateUser = participant.getGuest();
                     return UserPenaltyDto.builder()
@@ -101,7 +101,7 @@ public class SettlementService {
         int rewardPerParticipant = totalPenalty / Math.max(1, participants.size() - lateUsers.size());
 
         List<UserPenaltyDto> onTimeUsers = participants.stream()
-                .filter(Participant::isArrival)
+                .filter(Participant::isOnTime)
                 .map(participant -> {
                     SiteUser onTimeUser = participant.getGuest();
                     return UserPenaltyDto.builder()
@@ -142,8 +142,8 @@ public class SettlementService {
         List<Participant> participants = acceptedParticipants(promise).stream()
                 .sorted(Comparator.comparing(p -> p.getGuest().getId())).toList();
         if (participants.isEmpty()) throw new ConflictException("No accepted participants to settle");
-        List<Participant> late = participants.stream().filter(p -> !p.isArrival()).toList();
-        List<Participant> onTime = participants.stream().filter(Participant::isArrival).toList();
+        List<Participant> late = participants.stream().filter(p -> !p.isOnTime()).toList();
+        List<Participant> onTime = participants.stream().filter(Participant::isOnTime).toList();
         int total = checkedMultiply(late.size(), promise.getPenalty());
         int remainder = onTime.isEmpty() ? 0 : total % onTime.size();
         int reward = onTime.isEmpty() ? 0 : total / onTime.size() + (remainder == 0 ? 0 : 1);
