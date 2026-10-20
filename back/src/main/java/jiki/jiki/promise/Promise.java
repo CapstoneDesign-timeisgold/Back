@@ -8,6 +8,8 @@ import lombok.ToString;
 
 import java.util.HashSet;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Set;
 
 @Data
@@ -46,4 +48,9 @@ public class Promise {
     // Immutable response of newly finalized settlements; null for legacy settlements.
     @Column(columnDefinition = "TEXT")
     private String settlementResult;
+
+    @Transient
+    public LocalDateTime getScheduledAt() {
+        return LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(time));
+    }
 }

@@ -15,6 +15,7 @@ import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.Clock;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PromiseService {
+
+    private static final long ARRIVAL_EARLY_MINUTES = 10;
 
     private final PromiseRepository promiseRepository;
     private final UserRepository userRepository;
@@ -69,12 +72,13 @@ public class PromiseService {
                 .participationDeadline(deadline(promise))
                 .participationOpen(isParticipationOpen(promise))
                 .participationDeadlineEditable(isParticipationOpen(promise))
+                .arrivalOpensAt(arrivalOpensAt(promise))
+                .arrivalConfirmationOpen(isArrivalConfirmationOpen(promise))
                 .latitude(promise.getLatitude())
                 .longitude(promise.getLongitude())
                 .penalty(promise.getPenalty())
                 .participantUsernames(Set.of(host.getUsername()))
-                .participants(List.of(new ParticipantDetailDto(hostParticipant.getId(), host.getUsername(),
-                        ParticipantStatus.ACCEPTED, false)))
+                .participants(List.of(ParticipantDetailDto.from(hostParticipant)))
                 .build();
 
         return dto;
@@ -148,13 +152,15 @@ public class PromiseService {
                 .participationOpen(isParticipationOpen(promise))
                 .participationDeadlineEditable(promise.getCreator().getUsername().equals(guestUsername)
                         && isParticipationOpen(promise) && !hasDeadlineBeenLocked(promise))
+                .arrivalOpensAt(arrivalOpensAt(promise))
+                .arrivalConfirmationOpen(isArrivalConfirmationOpen(promise))
                 .latitude(promise.getLatitude())
                 .longitude(promise.getLongitude())
                 .penalty(promise.getPenalty())
                 .participantUsernames(participantUsernames)
                 .participantIds(participantIds)
                 .participants(promise.getParticipants().stream()
-                        .map(p -> new ParticipantDetailDto(p.getId(), p.getGuest().getUsername(), p.getStatus(), p.isArrival()))
+                        .map(ParticipantDetailDto::from)
                         .collect(Collectors.toList()))
                 .build();
     }
@@ -190,6 +196,7 @@ public class PromiseService {
                     || existingParticipant.getStatus() == ParticipantStatus.CANCELLED) {
                 existingParticipant.setStatus(ParticipantStatus.PENDING);
                 existingParticipant.setArrival(false);
+                existingParticipant.setArrivedAt(null);
                 existingParticipant.setHost(host);
                 participantRepository.save(existingParticipant);
                 return;
@@ -287,32 +294,33 @@ public class PromiseService {
         promiseRepository.delete(promise);
     }
 
-    // 약속에 늦었는지 여부 업데이트
+    // 본인의 도착을 확인하고 서버 시각으로 기록한다.
     @Transactional
     public void updateLateStatus(UpdateLateStatusDto updateLateStatusDto, String username) {
+        if (!updateLateStatusDto.isArrival()) {
+            throw new IllegalArgumentException("Arrival confirmation must be true");
+        }
         Promise promise = promiseForUpdate(updateLateStatusDto.getPromiseId());
-        SiteUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Invalid username: " + username));
 
         Participant participant = participantRepository.findByPromiseIdAndGuestUsername(updateLateStatusDto.getPromiseId(), username)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid participant or promise ID: " + updateLateStatusDto.getPromiseId()));
-
-        // 주최자 혹은 해당 참여자 본인만 지각 상태를 업데이트할 수 있도록 허용
-        if (!participant.getHost().equals(user) && !participant.getPromise().getCreator().equals(user) && !participant.getGuest().equals(user)) {
-            throw new AccessDeniedException("User not authorized to update late status for this participant");
-        }
 
         requireNotSettled(promise);
         if (participant.getStatus() != ParticipantStatus.ACCEPTED) {
             throw new ConflictException("Only accepted participants can confirm arrival");
         }
 
-        // 사용자가 직접 누르는 도착 확인 방식은 유지한다.
-        if (participant.isArrival()) {
-            throw new ConflictException("Cannot update late status once it has been set to true");
+        if (participant.isArrival() || participant.getArrivedAt() != null) {
+            throw new ConflictException("Arrival has already been confirmed");
         }
 
-        participant.setArrival(updateLateStatusDto.isArrival());
+        // Match the DATETIME(6) storage precision, after acquiring the promise lock.
+        LocalDateTime confirmedAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
+        if (confirmedAt.isBefore(arrivalOpensAt(promise))) {
+            throw new ConflictException("Arrival confirmation opens 10 minutes before the scheduled time");
+        }
+        participant.setArrivedAt(confirmedAt);
+        participant.setArrival(true);
         participantRepository.save(participant);
     }
 
@@ -334,6 +342,7 @@ public class PromiseService {
         promise.setParticipationDeadlineLocked(true);
         participant.setStatus(ParticipantStatus.CANCELLED);
         participant.setArrival(false);
+        participant.setArrivedAt(null);
         participantRepository.save(participant);
     }
 
@@ -365,7 +374,15 @@ public class PromiseService {
     }
 
     private LocalDateTime scheduledAt(Promise promise) {
-        return LocalDateTime.of(LocalDate.parse(promise.getDate()), LocalTime.parse(promise.getTime()));
+        return promise.getScheduledAt();
+    }
+
+    private LocalDateTime arrivalOpensAt(Promise promise) {
+        return scheduledAt(promise).minusMinutes(ARRIVAL_EARLY_MINUTES);
+    }
+
+    private boolean isArrivalConfirmationOpen(Promise promise) {
+        return !promise.isSettled() && !LocalDateTime.now(clock).isBefore(arrivalOpensAt(promise));
     }
 
     private LocalDateTime deadline(Promise promise) {

@@ -169,6 +169,7 @@ class ParticipationDeadlineTest {
     @Test
     void keepsManualArrivalButPreventsChangesAfterSettlement() {
         Promise promise = promise(NOW.minusMinutes(1));
+        promise.setTime("12:00");
         Participant participant = wire(promise, ParticipantStatus.ACCEPTED);
         when(participants.findByPromiseIdAndGuestUsername(1L, "guest")).thenReturn(Optional.of(participant));
         UpdateLateStatusDto arrival = UpdateLateStatusDto.builder().promiseId(1L).arrival(true).build();

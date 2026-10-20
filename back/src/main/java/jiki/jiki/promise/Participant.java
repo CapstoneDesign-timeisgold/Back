@@ -5,6 +5,7 @@ import jiki.jiki.user.SiteUser;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -41,4 +42,20 @@ public class Participant {
     private ParticipantStatus status;  // 참여 상태
 
     private boolean arrival;  // 도착 여부
+
+    @Column(columnDefinition = "datetime(6)")
+    private LocalDateTime arrivedAt;
+
+    @Transient
+    public ArrivalStatus getArrivalStatus() {
+        if (!arrival) return ArrivalStatus.NOT_CONFIRMED;
+        // Historical confirmations have no timestamp; preserve their existing treatment.
+        if (arrivedAt == null) return ArrivalStatus.ON_TIME;
+        return arrivedAt.isAfter(promise.getScheduledAt()) ? ArrivalStatus.LATE : ArrivalStatus.ON_TIME;
+    }
+
+    @Transient
+    public boolean isOnTime() {
+        return getArrivalStatus() == ArrivalStatus.ON_TIME;
+    }
 }
