@@ -45,7 +45,7 @@ back/
   src/main/java/        백엔드 애플리케이션
   src/main/resources/   애플리케이션 설정
   src/test/             테스트
-  docs/                 설계 및 검증 기록
+  docs/                 통합 개선 기록, DB 적용 SQL, 검증 스크립트
   deploy/nginx/         Nginx 설정과 실행 안내
 ```
 
@@ -67,7 +67,11 @@ cd back
 ./gradlew test
 ```
 
-Nginx 설정: [배포 안내](back/deploy/nginx/README.md)
+## 개발 기록과 배포
+
+- [개선 및 트러블슈팅 기록](back/docs/IMPROVEMENT_LOG.md): 오류 수정 이력, 참여·도착·정산 규칙, API, DB 적용 및 검증 방법
+- [Nginx 배포 안내](back/deploy/nginx/README.md)
+- [프로젝트 전체 저장소](https://github.com/CapstoneDesign-timeisgold)
 
 ## 포트폴리오
 
