@@ -14,7 +14,7 @@ public interface UserRepository extends JpaRepository<SiteUser, Long> {
     boolean existsByNickname(String nickname);
     boolean existsByEmail(String email);
     // Scalar locking read bypasses potentially stale managed SiteUser.money state.
-    @Query(value = "select money from site_user where id = :id for update", nativeQuery = true)
+    @Query(value = "select money from site_user where id = :id for update wait 2", nativeQuery = true)
     Optional<Integer> lockBalanceById(@Param("id") Long id);
 
     // Only settlement writes money. Caller holds the account lock until transaction commit.

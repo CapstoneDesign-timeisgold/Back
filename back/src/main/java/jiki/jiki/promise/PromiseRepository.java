@@ -5,6 +5,8 @@ import org.springframework.stereotype.Repository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
@@ -14,4 +16,10 @@ public interface PromiseRepository extends JpaRepository<Promise, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Promise p where p.id = :id")
     Optional<Promise> findForUpdateById(@Param("id") Long id);
+
+    // Same row lock; only settlement opts into a bounded wait and whole-transaction retries.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "2000"))
+    @Query("select p from Promise p where p.id = :id")
+    Optional<Promise> findForSettlementById(@Param("id") Long id);
 }
