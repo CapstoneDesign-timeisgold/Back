@@ -9,6 +9,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class GlobalExceptionHandlerTest {
+    @Test void exhaustedSettlementReturns503AndRetryAfterWithoutSqlDetails() throws Exception {
+        var mvc = MockMvcBuilders.standaloneSetup(new BrokenController())
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+        mvc.perform(get("/busy")).andExpect(status().isServiceUnavailable())
+                .andExpect(header().string("Retry-After", "1"))
+                .andExpect(jsonPath("error").value("Settlement is busy; retry the same promise ID"));
+    }
     @Test void unexpectedIllegalStateIs500AndDoesNotExposeInternalDetails() throws Exception {
         var mvc = MockMvcBuilders.standaloneSetup(new BrokenController())
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
@@ -27,6 +34,10 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class BrokenController {
+        @GetMapping("/busy")
+        String busy() {
+            throw new jiki.jiki.settlement.SettlementBusyException(new RuntimeException("private SQL"));
+        }
         @GetMapping("/broken")
         String broken() {
             throw new IllegalStateException("private SQL connection details");

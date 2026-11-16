@@ -1,0 +1,51 @@
+name: Backend tests
+
+on:
+  pull_request:
+    paths: ['back/**', '.github/workflows/backend-tests.yml']
+  push:
+    branches: [main, develop]
+    paths: ['back/**', '.github/workflows/backend-tests.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: jiki_test_settlement_ci
+          MARIADB_USER: settlement_test
+          MARIADB_PASSWORD: ci-test-only
+          MARIADB_RANDOM_ROOT_PASSWORD: '1'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      SETTLEMENT_TEST_DB_URL: jdbc:mariadb://127.0.0.1:3306/jiki_test_settlement_ci
+      SETTLEMENT_TEST_DB_USER: settlement_test
+      SETTLEMENT_TEST_DB_PASSWORD: ci-test-only
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            back/*.gradle
+            back/gradle/wrapper/gradle-wrapper.properties
+      - name: Run regression and MariaDB concurrency tests
+        working-directory: back
+        run: ./gradlew test settlementConcurrencyTest --no-daemon

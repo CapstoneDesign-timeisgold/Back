@@ -60,6 +60,8 @@ cd back
 
 Windows에서는 `./gradlew` 대신 `gradlew.bat`을 사용합니다.
 
+MariaDB 동시성·잠금 재시도 검증은 전용 테스트 DB를 준비한 뒤 `./gradlew test settlementConcurrencyTest`로 실행합니다. 환경 변수와 DB 제약 점검 방법은 [정산 상세](back/docs/IMPROVEMENT_LOG.md#settlement)를 참고합니다.
+
 일반 테스트 실행:
 
 ```bash

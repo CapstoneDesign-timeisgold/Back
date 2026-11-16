@@ -50,7 +50,7 @@ class SettlementServiceAuthorizationTest {
         Promise promise = promiseCreatedBy("creator");
         RewardDto rewardDto = new RewardDto();
         rewardDto.setPromiseId(1L);
-        when(promiseRepository.findForUpdateById(1L)).thenReturn(Optional.of(promise));
+        when(promiseRepository.findForSettlementById(1L)).thenReturn(Optional.of(promise));
 
         assertThrows(AccessDeniedException.class,
                 () -> settlementService.decideRewards("attacker", rewardDto));
@@ -75,7 +75,7 @@ class SettlementServiceAuthorizationTest {
         promise.setTime(LocalTime.now().withSecond(0).withNano(0).toString());
         RewardDto rewardDto = new RewardDto();
         rewardDto.setPromiseId(1L);
-        when(promiseRepository.findForUpdateById(1L)).thenReturn(Optional.of(promise));
+        when(promiseRepository.findForSettlementById(1L)).thenReturn(Optional.of(promise));
 
         assertThrows(ConflictException.class,
                 () -> settlementService.decideRewards("creator", rewardDto));
