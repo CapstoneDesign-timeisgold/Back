@@ -276,6 +276,47 @@ MariaDB 운영 스키마 변경은 별도 적용 대상이다. 서로 다른 약
 
 `money_record(promise_id, user_id, is_penalty)` 유일 제약으로 같은 약속·계정·방향의 중복 거래를 막는다. 잠금 조회와 잔액 변경은 반드시 같은 트랜잭션에서 실행해야 한다. 직접 SQL로 변경한 잔액은 기존 영속 엔티티에 자동 반영되지 않으므로 정산 중 잔액 계산은 잠금 조회 결과만 사용한다. 앞으로 다른 잔액 변경 기능을 추가할 때도 이 규칙을 공유해야 한다.
 
+### 잠금 충돌 재시도와 MariaDB 회귀 검증 (2026-11-16)
+
+약속당 한 번 정산하는 기존 구조와 금액 정책은 유지한다. HTTP 정산 요청은 `SettlementRetryService`를 거쳐 기존 `SettlementService`를 호출한다. 재시도 서비스에는 `Propagation.NEVER`를 적용해 이미 진행 중인 트랜잭션에 참여하지 못하게 한다. 매 시도는 기존 서비스의 트랜잭션 프록시를 통과하며, 커밋 오류까지 확인하고 실패한 트랜잭션이 롤백된 다음 정산 전체를 다시 실행한다. 같은 클래스 내부 호출로 트랜잭션 경계를 우회하지 않는다.
+
+- 정산의 약속 잠금은 JPA 잠금 시간 제한 2초, 계정 잠금은 MariaDB `FOR UPDATE WAIT 2`로 잠금 한 번당 대기를 제한한다. 약속 변경 등 다른 기능의 기존 잠금 조회는 유지한다. 이 시간은 요청 전체의 제한 시간이 아니며, 여러 계정에서 각각 대기하면 전체 시간은 늘어날 수 있다.
+- 최초 실행을 포함해 최대 3회 시도한다. 재시도 전 대기는 첫 번째 50~100ms, 두 번째 100~200ms 사이의 무작위 값이다. 이때 트랜잭션과 DB 잠금은 유지하지 않는다.
+- Spring/JPA의 비관적 잠금 충돌과 MariaDB 오류 1205(잠금 대기 초과), 1213(데드락)만 재시도한다. 권한·업무 규칙·유니크 제약 위반 및 일반 연결 오류는 재시도하지 않는다. 스레드 인터럽트가 발생하면 상태를 보존하고 중단한다.
+- 재시도 소진 시 `503 Service Unavailable`, `Retry-After: 1`을 반환한다. 클라이언트는 같은 `promiseId`로 재요청할 수 있다. 성공은 최초·중복 모두 기존처럼 204다. DB 오류 상세는 응답에 노출하지 않는다.
+
+#### 실제 DB 제약 확인
+
+[읽기 전용 점검 SQL](sql/check_settlement_integrity.sql)은 InnoDB 여부, 정산 컬럼, 실제 유니크 인덱스의 컬럼 구성, 중복 거래 그룹, 사용자 없는 신규 거래를 검사한다. 대상 DB를 지정해서 실행하고 모든 항목이 `PASS`인지 확인한다. 데이터나 스키마를 변경하지 않으며, 이 SQL을 실행해도 누락된 제약이 자동 생성되지는 않는다.
+
+```bash
+mariadb --defaults-extra-file=/path/to/read-only-client.cnf --database=jiki < docs/sql/check_settlement_integrity.sql
+```
+
+2026-11-16 현재 로컬 설정이 연결하는 `127.0.0.1:3306/jiki`(MariaDB 10.11.19)에서 다섯 점검 모두 PASS였다. `uk_record_promise_user_direction`은 실제 UNIQUE 인덱스이고, 컬럼 순서는 `promise_id,user_id,is_penalty`였다. 중복 그룹과 사용자 없는 식별 거래는 모두 0건이었다. 운영 서버 DB의 적용 상태는 별도로 확인해야 한다.
+
+#### 반복 실행하는 MariaDB 테스트
+
+`settlementConcurrencyTest`는 k6 없이 실행하는 실제 MariaDB 회귀 테스트다. 일반 `test`와 기존 성능 비교용 `settlementExperiment`는 분리해서 유지한다. **이 테스트는 `create-drop`으로 스키마를 생성·삭제하므로 폐기 가능한 전용 DB와 해당 DB에만 권한이 있는 계정을 준비해야 한다.** URL은 `localhost` 또는 `127.0.0.1`의 `jiki_test_settlement_*` 이름만 허용하며 운영 설정의 DB를 사용하지 않는다.
+
+```bash
+export SETTLEMENT_TEST_DB_URL=jdbc:mariadb://127.0.0.1:3306/jiki_test_settlement_local
+export SETTLEMENT_TEST_DB_USER=settlement_test
+# SETTLEMENT_TEST_DB_PASSWORD는 전용 테스트 계정 비밀번호로 설정한다.
+./gradlew test settlementConcurrencyTest
+```
+
+검증 범위:
+
+- InnoDB와 실제 유니크 인덱스 확인 및 중복 거래 INSERT 거절
+- 같은 약속에 인증된 HTTP 요청 10개 동시 실행 후 금액 반영 1회 확인
+- 같은 계정을 공유하는 서로 다른 약속 동시 정산 후 잔액·거래 내역 일치
+- 실제 약속 행 잠금 대기 초과 후 새 영속성 컨텍스트에서 재시도 성공
+- 실제 계정 잠금 대기 초과 3회 후 HTTP 503과 변경 없음 확인, 잠금 해제 후 재요청 성공
+- 테스트 전용 두 행을 역순으로 잠가 실제 InnoDB 데드락을 재현하고, 피해 트랜잭션의 선행 쓰기가 롤백된 뒤 전체 정산이 재시도되는지 확인
+
+2026-11-16 일반 회귀 테스트 156개와 로컬 MariaDB 10.11.19 테스트 6개가 모두 통과했고, 로그에서 실제 오류 1205와 1213 발생을 확인했다. 비공개 `application.properties`를 읽지 않는 설정으로도 전체 검증을 통과했다. 데드락 테스트의 역순 잠금은 재현용 테스트 코드에만 있으며 실제 정산은 기존 ID 오름차순 잠금을 유지한다. `.github/workflows/backend-tests.yml`에 Java 17과 MariaDB 10.11을 사용하는 PR·main/develop push·수동 실행 검증을 추가했다. GitHub에서의 실행 결과는 아직 확인하지 않았다.
+
 ### DB 변경과 기존 정산
 
 <a id="settlement-account"></a>
