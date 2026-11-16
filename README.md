@@ -45,8 +45,8 @@ back/
   src/main/java/        백엔드 애플리케이션
   src/main/resources/   애플리케이션 설정
   src/test/             테스트
-  docs/                 통합 개선 기록, DB 적용 SQL, 검증 스크립트
-  deploy/nginx/         Nginx 설정과 실행 안내
+  docs/                 개발과 운영 안내, DB 적용 SQL, 검증 스크립트
+  deploy/nginx/         Nginx 설정 파일
 ```
 
 ## 로컬 실행
@@ -60,7 +60,7 @@ cd back
 
 Windows에서는 `./gradlew` 대신 `gradlew.bat`을 사용합니다.
 
-MariaDB 동시성·잠금 재시도 검증은 전용 테스트 DB를 준비한 뒤 `./gradlew test settlementConcurrencyTest`로 실행합니다. 환경 변수와 DB 제약 점검 방법은 [정산 상세](back/docs/IMPROVEMENT_LOG.md#settlement)를 참고합니다.
+MariaDB 동시성·잠금 재시도 검증은 전용 테스트 DB를 준비한 뒤 `./gradlew test settlementConcurrencyTest`로 실행합니다. 환경 변수와 DB 제약 점검 방법은 [정산 상세](back/docs/README.md#settlement)를 참고합니다.
 
 일반 테스트 실행:
 
@@ -71,8 +71,7 @@ cd back
 
 ## 개발 기록과 배포
 
-- [개선 및 트러블슈팅 기록](back/docs/IMPROVEMENT_LOG.md): 오류 수정 이력, 참여·도착·정산 규칙, API, DB 적용 및 검증 방법
-- [Nginx 배포 안내](back/deploy/nginx/README.md)
+- [개발과 운영 안내](back/docs/README.md): 변경 기록, 참여와 정산 규칙, API, DB 적용, 테스트 및 Nginx 배포 절차
 - [프로젝트 전체 저장소](https://github.com/CapstoneDesign-timeisgold)
 
 ## 포트폴리오
