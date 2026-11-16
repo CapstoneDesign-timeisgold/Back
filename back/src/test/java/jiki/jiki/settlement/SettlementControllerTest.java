@@ -17,6 +17,9 @@ class SettlementControllerTest {
     private SettlementService settlementService;
 
     @Mock
+    private SettlementRetryService settlementRetryService;
+
+    @Mock
     private Authentication authentication;
 
     @InjectMocks
@@ -39,6 +42,6 @@ class SettlementControllerTest {
 
         settlementController.decideRewards(authentication, rewardDto);
 
-        verify(settlementService).decideRewards("creator", rewardDto);
+        verify(settlementRetryService).decideRewards("creator", rewardDto);
     }
 }

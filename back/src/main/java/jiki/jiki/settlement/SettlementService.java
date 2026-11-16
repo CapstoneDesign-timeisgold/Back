@@ -125,7 +125,7 @@ public class SettlementService {
         if (rewardDto == null || rewardDto.getPromiseId() == null) {
             throw new IllegalArgumentException("Promise ID is required");
         }
-        Promise promise = promiseRepository.findForUpdateById(rewardDto.getPromiseId())
+        Promise promise = promiseRepository.findForSettlementById(rewardDto.getPromiseId())
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + rewardDto.getPromiseId()));
         if (!promise.getCreator().getUsername().equals(username)) {
             throw new AccessDeniedException("Only the promise creator can settle rewards");
