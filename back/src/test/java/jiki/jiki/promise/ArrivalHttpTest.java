@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.transaction.TestTransaction;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -112,24 +113,36 @@ class ArrivalHttpTest {
         assertEquals(now, LocalDateTime.parse(lateDetail.get("arrivedAt").asText()));
         assertFalse(participants.findByPromiseIdAndGuestUsername(promise.getId(), "absent").orElseThrow().isArrival());
 
-        mvc.perform(post("/settlement/reward").header("Authorization", bearer("host"))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"promiseId\":" + promise.getId() + "}"))
-                .andExpect(status().isNoContent());
-        var result = settlements.getPromiseResultDetails(promise.getId(), "host");
-        assertEquals(2000, result.getTotalPenalty());
-        assertEquals(1, result.getOnTimeUsers().size());
-        assertEquals("host", result.getOnTimeUsers().get(0).getUsername());
-        assertEquals(2000, result.getOnTimeUsers().get(0).getRewardAmount());
-        assertEquals(9000, money("guest")); assertEquals(9000, money("absent")); assertEquals(12000, money("host"));
-        assertEquals(3L, jdbc.queryForObject("select count(*) from money_record where promise_id=?", Long.class, promise.getId()));
+        // The HTTP command retries across independent transactions, like a real request.
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        try {
+            mvc.perform(post("/settlement/reward").header("Authorization", bearer("host"))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"promiseId\":" + promise.getId() + "}"))
+                    .andExpect(status().isNoContent());
+            var result = settlements.getPromiseResultDetails(promise.getId(), "host");
+            assertEquals(2000, result.getTotalPenalty());
+            assertEquals(1, result.getOnTimeUsers().size());
+            assertEquals("host", result.getOnTimeUsers().get(0).getUsername());
+            assertEquals(2000, result.getOnTimeUsers().get(0).getRewardAmount());
+            assertEquals(9000, money("guest")); assertEquals(9000, money("absent")); assertEquals(12000, money("host"));
+            assertEquals(3L, jdbc.queryForObject("select count(*) from money_record where promise_id=?", Long.class, promise.getId()));
 
-        // A retry must not change the original confirmation time or apply transfers again.
-        now = START.plusMinutes(5);
-        confirm("guest", 409);
-        confirm("absent", 409);
-        reload();
-        assertEquals(START.plusNanos(1000), participants.findById(guestId).orElseThrow().getArrivedAt());
-        assertFalse(detail().get("arrivalConfirmationOpen").asBoolean());
+            // A retry must not change the original confirmation time or apply transfers again.
+            now = START.plusMinutes(5);
+            confirm("guest", 409);
+            confirm("absent", 409);
+            TestTransaction.start();
+            reload();
+            assertEquals(START.plusNanos(1000), participants.findById(guestId).orElseThrow().getArrivedAt());
+            assertFalse(detail().get("arrivalConfirmationOpen").asBoolean());
+        } finally {
+            if (TestTransaction.isActive()) TestTransaction.end();
+            jdbc.update("delete from money_record where promise_id=?", promise.getId());
+            jdbc.update("delete from participant where promise_id=?", promise.getId());
+            jdbc.update("delete from promise where id=?", promise.getId());
+            jdbc.update("delete from site_user where username in ('host','guest','absent')");
+        }
     }
 
     @ParameterizedTest
