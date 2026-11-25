@@ -1,4 +1,4 @@
-package jiki.jiki.config;
+package jiki.jiki.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jiki.jiki.friend.*;

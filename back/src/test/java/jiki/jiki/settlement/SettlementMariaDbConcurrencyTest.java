@@ -2,6 +2,7 @@ package jiki.jiki.settlement;
 
 import jakarta.persistence.EntityManager;
 import jiki.jiki.security.JwtProvider;
+import jiki.jiki.settlement.dto.RewardDto;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

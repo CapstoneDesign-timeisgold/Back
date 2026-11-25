@@ -2,7 +2,15 @@ package jiki.jiki.promise;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.promise.dto.ParticipantDetailDto;
+import jiki.jiki.promise.dto.ParticipantRequestDto;
+import jiki.jiki.promise.dto.ParticipantRequestListDto;
+import jiki.jiki.promise.dto.ParticipationDeadlineDto;
+import jiki.jiki.promise.dto.PromiseCreateDto;
+import jiki.jiki.promise.dto.PromiseDetailDto;
+import jiki.jiki.promise.dto.PromiseListDto;
+import jiki.jiki.promise.dto.UpdateLateStatusDto;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,12 +42,9 @@ public class PromiseService {
     //약속 생성
     @Transactional
     public PromiseDetailDto createPromise(String creatorUsername, PromiseCreateDto promiseCreateDto) {
-        validatePromiseDateTime(promiseCreateDto);
-        validateDeadline(promiseCreateDto.getParticipationDeadline(), LocalDateTime.of(
-                LocalDate.parse(promiseCreateDto.getDate()), LocalTime.parse(promiseCreateDto.getTime())));
+        validateDeadline(promiseCreateDto.getParticipationDeadline(), parseScheduledAt(promiseCreateDto));
 
-        SiteUser host = userRepository.findByUsername(creatorUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        SiteUser host = findUser(creatorUsername);
 
         Promise promise = new Promise();
         promise.setTitle(promiseCreateDto.getTitle());
@@ -63,31 +68,16 @@ public class PromiseService {
 
         promise.getParticipants().add(hostParticipant);
 
-        // DTO 변환
-        PromiseDetailDto dto = PromiseDetailDto.builder()
-                .promiseId(promise.getId())
-                .title(promise.getTitle())
-                .date(promise.getDate())
-                .time(promise.getTime())
-                .participationDeadline(deadline(promise))
-                .participationOpen(isParticipationOpen(promise))
-                .participationDeadlineEditable(isParticipationOpen(promise))
-                .arrivalOpensAt(arrivalOpensAt(promise))
-                .arrivalConfirmationOpen(isArrivalConfirmationOpen(promise))
-                .latitude(promise.getLatitude())
-                .longitude(promise.getLongitude())
-                .penalty(promise.getPenalty())
+        return detailBuilder(promise, host.getUsername())
                 .participantUsernames(Set.of(host.getUsername()))
                 .participants(List.of(ParticipantDetailDto.from(hostParticipant)))
                 .build();
-
-        return dto;
     }
 
-    private void validatePromiseDateTime(PromiseCreateDto promiseCreateDto) {
+    private LocalDateTime parseScheduledAt(PromiseCreateDto promiseCreateDto) {
         try {
-            LocalDate.parse(promiseCreateDto.getDate());
-            LocalTime.parse(promiseCreateDto.getTime());
+            return LocalDateTime.of(LocalDate.parse(promiseCreateDto.getDate()),
+                    LocalTime.parse(promiseCreateDto.getTime()));
         } catch (DateTimeParseException | NullPointerException e) {
             throw new IllegalArgumentException("Promise date and time must be valid ISO values (yyyy-MM-dd, HH:mm)");
         }
@@ -96,8 +86,7 @@ public class PromiseService {
     //약속 목록
     @Transactional
     public List<PromiseListDto> getPromiseList(String guestUsername) {
-        SiteUser guest = userRepository.findByUsername(guestUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        SiteUser guest = findUser(guestUsername);
 
         List<Participant> participants = participantRepository.findListWithPromiseAndCreator(
                 guest, ParticipantStatus.ACCEPTED);
@@ -120,8 +109,7 @@ public class PromiseService {
     //약속 상세 보기
     @Transactional
     public PromiseDetailDto getPromiseDetail(Long promiseId, String guestUsername) {
-        SiteUser guest = userRepository.findByUsername(guestUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        SiteUser guest = findUser(guestUsername);
 
         Promise promise = promiseRepository.findById(promiseId)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
@@ -143,20 +131,7 @@ public class PromiseService {
                 .map(Participant::getId)
                 .collect(Collectors.toSet());
 
-        return PromiseDetailDto.builder()
-                .promiseId(promiseId)
-                .title(promise.getTitle())
-                .date(promise.getDate())
-                .time(promise.getTime())
-                .participationDeadline(deadline(promise))
-                .participationOpen(isParticipationOpen(promise))
-                .participationDeadlineEditable(promise.getCreator().getUsername().equals(guestUsername)
-                        && isParticipationOpen(promise) && !hasDeadlineBeenLocked(promise))
-                .arrivalOpensAt(arrivalOpensAt(promise))
-                .arrivalConfirmationOpen(isArrivalConfirmationOpen(promise))
-                .latitude(promise.getLatitude())
-                .longitude(promise.getLongitude())
-                .penalty(promise.getPenalty())
+        return detailBuilder(promise, guestUsername)
                 .participantUsernames(participantUsernames)
                 .participantIds(participantIds)
                 .participants(promise.getParticipants().stream()
@@ -165,11 +140,29 @@ public class PromiseService {
                 .build();
     }
 
+    private PromiseDetailDto.PromiseDetailDtoBuilder detailBuilder(Promise promise, String username) {
+        boolean participationOpen = isParticipationOpen(promise);
+        boolean canEditDeadline = participationOpen && promise.getCreator().getUsername().equals(username)
+                && !hasDeadlineBeenLocked(promise);
+        return PromiseDetailDto.builder()
+                .promiseId(promise.getId())
+                .title(promise.getTitle())
+                .date(promise.getDate())
+                .time(promise.getTime())
+                .participationDeadline(deadline(promise))
+                .participationOpen(participationOpen)
+                .participationDeadlineEditable(canEditDeadline)
+                .arrivalOpensAt(arrivalOpensAt(promise))
+                .arrivalConfirmationOpen(isArrivalConfirmationOpen(promise))
+                .latitude(promise.getLatitude())
+                .longitude(promise.getLongitude())
+                .penalty(promise.getPenalty());
+    }
+
     //약속 초대
     @Transactional
     public void inviteParticipant(String hostUsername, ParticipantRequestDto participantRequestDto) {
-        Promise promise = promiseRepository.findForUpdateById(participantRequestDto.getPromiseId())
-                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + participantRequestDto.getPromiseId()));
+        Promise promise = promiseForUpdate(participantRequestDto.getPromiseId());
 
         SiteUser host = userRepository.findByUsername(hostUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Invalid username: " + hostUsername));
@@ -218,8 +211,7 @@ public class PromiseService {
     //약속 초대 요청 목록
     @Transactional
     public Set<ParticipantRequestListDto> getPromiseInvitations(String guestUsername) {
-        SiteUser guest = userRepository.findByUsername(guestUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        SiteUser guest = findUser(guestUsername);
 
         return participantRepository.findByGuestAndStatus(guest, ParticipantStatus.PENDING)
                 .stream()
@@ -280,11 +272,9 @@ public class PromiseService {
     //약속 삭제
     @Transactional
     public void deletePromise(Long promiseId, String hostUsername) {
-        Promise promise = promiseRepository.findForUpdateById(promiseId)
-                .orElseThrow(() -> new EntityNotFoundException("Invalid promise ID: " + promiseId));
+        Promise promise = promiseForUpdate(promiseId);
 
-        SiteUser host = userRepository.findByUsername(hostUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        SiteUser host = findUser(hostUsername);
 
         if (!promise.getCreator().equals(host)) {
             throw new AccessDeniedException("User not authorized to delete this promise");
@@ -356,8 +346,13 @@ public class PromiseService {
         if (hasDeadlineBeenLocked(promise)) {
             throw new ConflictException("The participation deadline is locked after the first guest accepts");
         }
-        validateDeadline(request.getParticipationDeadline(), scheduledAt(promise));
+        validateDeadline(request.getParticipationDeadline(), promise.getScheduledAt());
         promise.setParticipationDeadline(request.getParticipationDeadline());
+    }
+
+    private SiteUser findUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     private Promise promiseForUpdate(Long promiseId) {
@@ -373,12 +368,8 @@ public class PromiseService {
                 .orElseThrow(() -> new EntityNotFoundException("Invalid participant ID: " + participantId));
     }
 
-    private LocalDateTime scheduledAt(Promise promise) {
-        return promise.getScheduledAt();
-    }
-
     private LocalDateTime arrivalOpensAt(Promise promise) {
-        return scheduledAt(promise).minusMinutes(ARRIVAL_EARLY_MINUTES);
+        return promise.getScheduledAt().minusMinutes(ARRIVAL_EARLY_MINUTES);
     }
 
     private boolean isArrivalConfirmationOpen(Promise promise) {
@@ -387,7 +378,7 @@ public class PromiseService {
 
     private LocalDateTime deadline(Promise promise) {
         return promise.getParticipationDeadline() != null
-                ? promise.getParticipationDeadline() : scheduledAt(promise);
+                ? promise.getParticipationDeadline() : promise.getScheduledAt();
     }
 
     private void validateDeadline(LocalDateTime deadline, LocalDateTime scheduledAt) {

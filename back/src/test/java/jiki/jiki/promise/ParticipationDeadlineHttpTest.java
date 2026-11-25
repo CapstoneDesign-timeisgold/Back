@@ -1,7 +1,7 @@
 package jiki.jiki.promise;
 
-import jiki.jiki.config.ConflictException;
-import jiki.jiki.config.GlobalExceptionHandler;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;

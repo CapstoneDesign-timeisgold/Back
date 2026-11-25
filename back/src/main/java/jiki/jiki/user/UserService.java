@@ -5,7 +5,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.user.dto.UserSignupDto;
 
 import java.sql.SQLException;
 import java.util.Map;

@@ -1,5 +1,7 @@
 package jiki.jiki.settlement;
 
+import jiki.jiki.settlement.dto.PromiseResultDto;
+import jiki.jiki.settlement.dto.RewardDto;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

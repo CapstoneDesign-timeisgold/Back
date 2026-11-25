@@ -1,6 +1,7 @@
 package jiki.jiki.promise;
 
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.promise.dto.ParticipantRequestDto;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import org.junit.jupiter.api.Test;

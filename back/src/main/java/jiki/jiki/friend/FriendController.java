@@ -1,5 +1,8 @@
 package jiki.jiki.friend;
 
+import jiki.jiki.friend.dto.FriendDto;
+import jiki.jiki.friend.dto.FriendRequestDto;
+import jiki.jiki.friend.dto.FriendRequestListDto;
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jiki.jiki.promise.dto.PromiseListDto;
 import jiki.jiki.security.JwtProvider;
 import jiki.jiki.user.SiteUser;
 import org.hibernate.SessionFactory;

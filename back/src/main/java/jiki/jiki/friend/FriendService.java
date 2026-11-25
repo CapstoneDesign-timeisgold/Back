@@ -1,15 +1,17 @@
 package jiki.jiki.friend;
 
-import jiki.jiki.config.ConflictException;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.friend.dto.FriendDto;
+import jiki.jiki.friend.dto.FriendRequestDto;
+import jiki.jiki.friend.dto.FriendRequestListDto;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,19 +26,13 @@ public class FriendService {
     //친구 초대 요청
     @Transactional
     public void sendFriendRequest(String senderUsername, FriendRequestDto friendRequestDto) {
-        Optional<SiteUser> user1 = userRepository.findByUsername(senderUsername);
-        Optional<SiteUser> user2 = userRepository.findByUsername(friendRequestDto.getUsername2());
-
-        if (user1.isEmpty() || user2.isEmpty()) {
-            throw new EntityNotFoundException("User not found");
-        }
+        SiteUser sender = findUser(senderUsername);
+        SiteUser recipient = findUser(friendRequestDto.getUsername2());
 
         if (senderUsername.equals(friendRequestDto.getUsername2())) {
             throw new IllegalArgumentException("Cannot send a friend request to yourself");
         }
 
-        SiteUser sender = user1.get();
-        SiteUser recipient = user2.get();
         if (friendRepository.existsActiveRelationship(
                 sender,
                 recipient,
@@ -51,46 +47,35 @@ public class FriendService {
         friendRepository.save(friend);
     }
 
+    private SiteUser findUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
+
     //친구 요청 알림
     @Transactional(readOnly = true)
     public Set<FriendRequestListDto> getFriendRequests(String username) {
         return friendRepository.findPendingRequestsWithUsers(username, FriendStatus.PENDING)
                 .stream()
-                .map(this::mapToFriendRequestListDto)
+                .map(FriendRequestListDto::from)
                 .collect(Collectors.toSet());
-    }
-
-    private FriendRequestListDto mapToFriendRequestListDto(Friend friend) {
-        return FriendRequestListDto.builder()
-                .friendId(friend.getId())
-                .username(friend.getUser1().getUsername())
-                .username2(friend.getUser2().getUsername())
-                .build();
     }
 
     //친구추가 수락
     @Transactional
     public void acceptFriendRequest(String recipientUsername, Long friendId) {
-        Friend friend = friendRepository.findById(friendId)
-                .orElseThrow(() -> new EntityNotFoundException("Invalid friend request ID"));
-
-        validatePendingRequestRecipient(friend, recipientUsername);
-        friend.setStatus(FriendStatus.ACCEPTED);
-        friendRepository.save(friend);
+        respondToRequest(recipientUsername, friendId, FriendStatus.ACCEPTED);
     }
 
     //친구추가 거절
     @Transactional
     public void declineFriendRequest(String recipientUsername, Long friendId) {
-        Friend friend = friendRepository.findById(friendId)
-                .orElseThrow(() -> new EntityNotFoundException("Invalid friend request ID"));
-
-        validatePendingRequestRecipient(friend, recipientUsername);
-        friend.setStatus(FriendStatus.DECLINED);
-        friendRepository.save(friend);
+        respondToRequest(recipientUsername, friendId, FriendStatus.DECLINED);
     }
 
-    private void validatePendingRequestRecipient(Friend friend, String recipientUsername) {
+    private void respondToRequest(String recipientUsername, Long friendId, FriendStatus status) {
+        Friend friend = friendRepository.findById(friendId)
+                .orElseThrow(() -> new EntityNotFoundException("Invalid friend request ID"));
         if (!friend.getUser2().getUsername().equals(recipientUsername)) {
             throw new AccessDeniedException("User not authorized to process this friend request");
         }
@@ -98,39 +83,15 @@ public class FriendService {
         if (friend.getStatus() != FriendStatus.PENDING) {
             throw new ConflictException("Friend request is no longer pending");
         }
-    }
-
-    //친구목록
-    @Transactional(readOnly = true)
-    public Set<FriendResponseDto> getFriendRequestsDto(String username) {
-        return friendRepository.findAcceptedFriendsWithUsers(username, FriendStatus.ACCEPTED)
-                .stream()
-                .map(this::mapToFriendResponseDto)
-                .collect(Collectors.toSet());
-    }
-
-    private FriendResponseDto mapToFriendResponseDto(Friend friend) {
-        return FriendResponseDto.builder()
-                .id(friend.getId())
-                .username(friend.getUser1().getUsername())
-                .username2(friend.getUser2().getUsername())
-                .status(friend.getStatus().name())
-                .build();
+        friend.setStatus(status);
+        friendRepository.save(friend);
     }
 
     @Transactional(readOnly = true)
     public Set<FriendDto> getFriends(String username) {
         return friendRepository.findAcceptedFriendsWithUsers(username, FriendStatus.ACCEPTED)
                 .stream()
-                .map(friend -> mapToFriendDto(friend, username))
+                .map(friend -> FriendDto.from(friend, username))
                 .collect(Collectors.toSet());
-    }
-
-    private FriendDto mapToFriendDto(Friend friend, String requestUsername) {
-        return FriendDto.builder()
-                .username(requestUsername)
-                .username2(friend.getUser1().getUsername().equals(requestUsername) ? friend.getUser2().getUsername() : friend.getUser1().getUsername())
-                .status(friend.getStatus().name())
-                .build();
     }
 }

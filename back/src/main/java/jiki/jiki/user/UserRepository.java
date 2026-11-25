@@ -22,6 +22,4 @@ public interface UserRepository extends JpaRepository<SiteUser, Long> {
     @Query(value = "update site_user set money = :balance where id = :id", nativeQuery = true)
     int updateLockedBalance(@Param("id") Long id, @Param("balance") int balance);
     Optional<SiteUser> findByUsername(String username); //사용자 아이디로 사용자 찾기
-    Optional<SiteUser> findByNickname(String nickname); // 닉네임으로 사용자 찾기
 }
-

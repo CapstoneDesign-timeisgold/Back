@@ -1,6 +1,7 @@
 package jiki.jiki.user;
 
 import jiki.jiki.security.JwtProvider;
+import jiki.jiki.user.dto.UserLoginDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
