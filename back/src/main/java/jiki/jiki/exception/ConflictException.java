@@ -1,4 +1,4 @@
-package jiki.jiki.config;
+package jiki.jiki.exception;
 
 public class ConflictException extends RuntimeException {
 

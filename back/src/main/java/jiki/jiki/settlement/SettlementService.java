@@ -3,11 +3,16 @@ package jiki.jiki.settlement;
 import jakarta.persistence.EntityNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
 import jiki.jiki.promise.Participant;
 import jiki.jiki.promise.ParticipantStatus;
 import jiki.jiki.promise.Promise;
 import jiki.jiki.promise.PromiseRepository;
+import jiki.jiki.settlement.dto.MoneyDto;
+import jiki.jiki.settlement.dto.MoneyRecordDto;
+import jiki.jiki.settlement.dto.PromiseResultDto;
+import jiki.jiki.settlement.dto.RewardDto;
+import jiki.jiki.settlement.dto.UserPenaltyDto;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +20,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -236,12 +238,7 @@ public class SettlementService {
 
     private void validatePromiseHasEnded(Promise promise) {
         try {
-            LocalDateTime promiseDateTime = LocalDateTime.of(
-                    LocalDate.parse(promise.getDate()),
-                    LocalTime.parse(promise.getTime())
-            );
-
-            if (LocalDateTime.now(clock).isBefore(promiseDateTime)) {
+            if (LocalDateTime.now(clock).isBefore(promise.getScheduledAt())) {
                 throw new ConflictException("Promise cannot be settled before its scheduled time");
             }
         } catch (DateTimeParseException | NullPointerException e) {

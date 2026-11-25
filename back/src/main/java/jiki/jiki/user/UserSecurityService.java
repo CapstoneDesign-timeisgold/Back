@@ -1,6 +1,8 @@
 package jiki.jiki.user;
 
 import jiki.jiki.security.JwtProvider;
+import jiki.jiki.user.dto.LoginResponseDto;
+import jiki.jiki.user.dto.UserLoginDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -48,15 +50,4 @@ public class UserSecurityService implements UserDetailsService {
         String token = jwtProvider.generateToken(user.getUsername());
         return new LoginResponseDto(token, user.getNickname());
     }
-
-    public String getUserNickname(String username) {
-        return userRepository.findByUsername(username)
-                .map(SiteUser::getNickname)
-                .orElse(null);
-    }
 }
-
-
-
-
-

@@ -1,4 +1,4 @@
-package jiki.jiki.config;
+package jiki.jiki.exception;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.GetMapping;

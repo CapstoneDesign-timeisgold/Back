@@ -2,6 +2,7 @@ package jiki.jiki.promise;
 
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import jiki.jiki.promise.dto.PromiseCreateDto;
 import jiki.jiki.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

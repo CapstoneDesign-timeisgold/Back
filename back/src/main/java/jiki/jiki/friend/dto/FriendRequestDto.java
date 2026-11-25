@@ -1,4 +1,4 @@
-package jiki.jiki.friend;
+package jiki.jiki.friend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
