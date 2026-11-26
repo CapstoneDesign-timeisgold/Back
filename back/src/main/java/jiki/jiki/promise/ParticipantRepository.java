@@ -21,7 +21,6 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participant p where p.id = :id")
     Optional<Participant> findForUpdateById(@Param("id") Long id);
-    List<Participant> findByGuest(SiteUser guest);
 
     // List DTOs need the promise and its creator; fetch both to avoid per-row SELECTs.
     @Query("select p from Participant p " +

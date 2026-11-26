@@ -1,4 +1,4 @@
-package jiki.jiki.user;
+package jiki.jiki.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

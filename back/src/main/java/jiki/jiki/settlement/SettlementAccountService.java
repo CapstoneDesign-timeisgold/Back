@@ -1,6 +1,6 @@
 package jiki.jiki.settlement;
 
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.SystemAccountType;
 import jiki.jiki.user.UserRepository;

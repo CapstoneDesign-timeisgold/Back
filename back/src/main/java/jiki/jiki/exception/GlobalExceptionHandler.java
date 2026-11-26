@@ -1,4 +1,4 @@
-package jiki.jiki.config;
+package jiki.jiki.exception;
 
 import jakarta.persistence.EntityNotFoundException;
 import jiki.jiki.settlement.SettlementBusyException;

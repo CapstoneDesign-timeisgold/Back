@@ -1,4 +1,4 @@
-package jiki.jiki.promise;
+package jiki.jiki.promise.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,12 +10,11 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PromiseListDto {
-    private String title;
-    private String date;
-    private String time;
-    private LocalDateTime participationDeadline;
-    private boolean participationOpen;
+public class ParticipantRequestListDto {
     private Long promiseId;
-    private String creatorUsername;
+    private String hostUsername;
+    private String guestUsername; // 추가
+    private Long participantId; // 추가
+    private String title;
+    private LocalDateTime participationDeadline;
 }

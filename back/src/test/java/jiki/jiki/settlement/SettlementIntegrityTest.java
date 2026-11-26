@@ -2,9 +2,12 @@ package jiki.jiki.settlement;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
-import jiki.jiki.config.ConflictException;
 import jiki.jiki.config.TimeConfig;
+import jiki.jiki.exception.ConflictException;
 import jiki.jiki.promise.Promise;
+import jiki.jiki.settlement.dto.PromiseResultDto;
+import jiki.jiki.settlement.dto.RewardDto;
+import jiki.jiki.settlement.dto.UserPenaltyDto;
 import jiki.jiki.user.SiteUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

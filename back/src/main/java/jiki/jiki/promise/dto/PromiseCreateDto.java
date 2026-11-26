@@ -1,4 +1,4 @@
-package jiki.jiki.promise;
+package jiki.jiki.promise.dto;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;

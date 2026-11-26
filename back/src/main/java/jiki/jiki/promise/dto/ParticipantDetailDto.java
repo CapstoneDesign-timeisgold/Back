@@ -1,5 +1,8 @@
-package jiki.jiki.promise;
+package jiki.jiki.promise.dto;
 
+import jiki.jiki.promise.ArrivalStatus;
+import jiki.jiki.promise.Participant;
+import jiki.jiki.promise.ParticipantStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.time.LocalDateTime;

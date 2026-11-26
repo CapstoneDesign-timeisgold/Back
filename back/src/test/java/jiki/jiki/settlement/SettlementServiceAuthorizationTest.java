@@ -1,10 +1,12 @@
 package jiki.jiki.settlement;
 
-import jiki.jiki.promise.Promise;
-import jiki.jiki.promise.PromiseRepository;
+import jiki.jiki.exception.ConflictException;
 import jiki.jiki.promise.Participant;
 import jiki.jiki.promise.ParticipantStatus;
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.promise.Promise;
+import jiki.jiki.promise.PromiseRepository;
+import jiki.jiki.settlement.dto.PromiseResultDto;
+import jiki.jiki.settlement.dto.RewardDto;
 import jiki.jiki.user.SiteUser;
 import jiki.jiki.user.UserRepository;
 import org.junit.jupiter.api.Test;

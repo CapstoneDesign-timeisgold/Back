@@ -1,6 +1,8 @@
 package jiki.jiki.settlement;
 
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.settlement.dto.PromiseResultDto;
+import jiki.jiki.settlement.dto.RewardDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

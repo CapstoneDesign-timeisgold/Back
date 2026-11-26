@@ -1,4 +1,4 @@
-package jiki.jiki.user;
+package jiki.jiki.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

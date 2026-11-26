@@ -10,7 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.dao.DataIntegrityViolationException;
-import jiki.jiki.config.ConflictException;
+import jiki.jiki.exception.ConflictException;
+import jiki.jiki.user.dto.UserSignupDto;
 import java.sql.SQLException;
 
 import java.util.Optional;

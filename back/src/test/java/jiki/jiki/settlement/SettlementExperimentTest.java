@@ -3,6 +3,7 @@ package jiki.jiki.settlement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jiki.jiki.security.JwtProvider;
+import jiki.jiki.settlement.dto.RewardDto;
 import jiki.jiki.user.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package jiki.jiki.settlement;
+package jiki.jiki.settlement.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserPenaltyDto {
-    private String username;
-    private int penaltyAmount;
-    private int rewardAmount;
+public class MoneyDto {
+    private int money;
 }
