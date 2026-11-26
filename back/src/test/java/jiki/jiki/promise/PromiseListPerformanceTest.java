@@ -1,11 +1,14 @@
 package jiki.jiki.promise;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jiki.jiki.promise.dto.PromiseListDto;
 import jiki.jiki.security.JwtProvider;
+import jiki.jiki.testsupport.HttpLoad;
 import jiki.jiki.user.SiteUser;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -29,8 +32,6 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-
-
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("performance")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "settlement.account.initialize=false", "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.datasource.driver-class-name=org.mariadb.jdbc.Driver",
         "spring.jpa.open-in-view=false",
         "spring.jpa.show-sql=false",
         "spring.jpa.properties.hibernate.generate_statistics=false",
@@ -76,7 +78,11 @@ class PromiseListPerformanceTest {
     void benchmarkSqlAndAuthenticatedHttp() throws Exception {
         String label = System.getProperty("perf.label", "manual");
         assertTrue(label.matches("[a-zA-Z0-9_-]+"));
+        int seconds = Integer.parseInt(System.getProperty("perf.seconds", "10"));
+        assertTrue(seconds >= 1 && seconds <= 300, "perfSeconds must be between 1 and 300");
         Path output = Path.of(System.getProperty("perf.output"), label);
+        HttpClient client = HttpLoad.client();
+        HttpRequest request = request();
         // Keep previous evidence intact: choose a new label for every run.
         Files.createDirectories(output.getParent());
         Files.createDirectory(output);
@@ -88,11 +94,11 @@ class PromiseListPerformanceTest {
                 + "\nprocessors=" + Runtime.getRuntime().availableProcessors()
                 + "\nmaxHeapBytes=" + Runtime.getRuntime().maxMemory()
                 + "\ndatabase=" + tx.execute(s -> em.createNativeQuery("select version()").getSingleResult())
-                + "\nloadGenerator=k6 external process; constant VUs; no think time"
-                + "\nhikariPool=10\nserver=random port, embedded Tomcat; k6/server/MariaDB on same machine"
+                + "\nloadGenerator=Java HttpClient; constant VUs; no think time"
+                + "\nhikariPool=10\nserver=random port, embedded Tomcat; client and server in same JVM; MariaDB on same machine"
                 + "\ndataset=10/50/100 accepted; each has 20 pending + 20 declined + 20 cancelled; distinct creator per promise"
                 + "\nhttpDataset=100 accepted; same authenticated account for all virtual users"
-                + "\nrepetitions=3; warmup=5s per concurrency; measurement=" + System.getProperty("perf.seconds") + "s per repetition\n");
+                + "\nrepetitions=3; warmup=5s per concurrency; measurement=" + seconds + "s per repetition\n");
 
         Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
         Files.writeString(output.resolve("sql.csv"), "scope,accepted,repetition,prepared_statements,returned\n");
@@ -108,9 +114,8 @@ class PromiseListPerformanceTest {
                     if (label.startsWith("after")) assertTrue(statements <= 2, "List query must not grow with N");
                 }
             }
-            HttpClient client = client();
             stats.clear();
-            var response = client.send(request(), HttpResponse.BodyHandlers.ofString());
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             long statements = stats.getPrepareStatementCount();
             assertEquals(200, response.statusCode());
             verify(100, mapper.readValue(response.body(), new TypeReference<List<PromiseListDto>>() {}));
@@ -118,38 +123,76 @@ class PromiseListPerformanceTest {
         } finally {
             stats.setStatisticsEnabled(false);
         }
-        Files.writeString(output.resolve("expected.json"), mapper.writeValueAsString(expected.get(100)));
+        List<PromiseListDto> expectedRows = expected.get(100);
+        Path expectedFile = output.resolve("expected.json");
+        mapper.writeValue(expectedFile.toFile(), expectedRows);
+        Map<Long, JsonNode> expectedById = new HashMap<>();
+        for (JsonNode row : mapper.readTree(expectedFile.toFile())) {
+            expectedById.put(row.get("promiseId").longValue(), row);
+        }
+        Path runs = output.resolve("runs.csv");
+        Files.writeString(runs, "vus,repetition,requests,rps,p95_ms,p99_ms,http_error_rate,failed_checks\n");
+        Path summary = output.resolve("summary.csv");
+        Files.writeString(summary, "vus,median_p95_ms,min_p95_ms,max_p95_ms,median_rps\n");
         for (int vus : List.of(1, 10, 30)) {
-            runK6(output, vus, 0, 5);
+            measure(output, client, request, expectedById, vus, 0, 5);
+            List<HttpLoad.Summary> repetitions = new ArrayList<>();
             for (int repetition = 1; repetition <= 3; repetition++) {
-                runK6(output, vus, repetition, Integer.parseInt(System.getProperty("perf.seconds", "10")));
+                HttpLoad.Summary run = measure(output, client, request, expectedById, vus, repetition, seconds);
+                repetitions.add(run);
+                double httpErrorRate = 1 - run.statusCounts().getOrDefault(200, 0) / (double) run.requests();
+                append(runs, String.format(Locale.ROOT, "%d,%d,%d,%.6f,%.6f,%.6f,%.6f,%d%n",
+                        vus, repetition, run.requests(), run.requestsPerSecond(), run.p95Ms(), run.p99Ms(),
+                        httpErrorRate, run.failedChecks()));
+                assertEquals(0, run.failedChecks(), "Promise list response checks failed");
             }
+            double[] p95 = repetitions.stream().mapToDouble(HttpLoad.Summary::p95Ms).sorted().toArray();
+            double[] rps = repetitions.stream().mapToDouble(HttpLoad.Summary::requestsPerSecond).sorted().toArray();
+            append(summary, String.format(Locale.ROOT, "%d,%.6f,%.6f,%.6f,%.6f%n", vus, p95[1], p95[0], p95[2], rps[1]));
         }
     }
 
-    private void runK6(Path output, int vus, int repetition, int seconds) throws Exception {
-        String k6 = Objects.requireNonNull(System.getenv("PERF_K6"), "PERF_K6 executable path required");
+    private HttpLoad.Summary measure(Path output, HttpClient client, HttpRequest request,
+                                     Map<Long, JsonNode> expectedById, int vus, int repetition, int seconds) throws Exception {
         String name = "vus-" + vus + "-run-" + repetition;
-        ProcessBuilder process = new ProcessBuilder(k6, "run", "--quiet", "--no-color", "--no-usage-report",
-                "--out", "json=" + output.resolve(name + "-samples.json.gz"),
-                Path.of("docs/performance/promise-list.js").toAbsolutePath().toString());
-        process.environment().put("BASE_URL", "http://127.0.0.1:" + port);
-        process.environment().put("TOKEN", jwt.generateToken("perf-100"));
-        process.environment().put("VUS", String.valueOf(vus));
-        process.environment().put("DURATION", seconds + "s");
-        process.environment().put("EXPECTED_FILE", output.resolve("expected.json").toAbsolutePath().toString());
-        process.environment().put("SUMMARY_FILE", output.resolve(name + "-summary.json").toAbsolutePath().toString());
-        process.redirectErrorStream(true);
-        process.redirectOutput(output.resolve(name + "-k6.log").toFile());
-        Process child = process.start();
-        try {
-            assertTrue(child.waitFor(seconds + 60L, java.util.concurrent.TimeUnit.SECONDS), "k6 timed out");
-            assertEquals(0, child.exitValue(), "k6 failed; inspect " + name + "-k6.log");
-        } finally {
-            if (child.isAlive()) child.destroyForcibly();
+        HttpLoad.Result result = HttpLoad.forDuration(vus, Duration.ofSeconds(seconds), request, client,
+                response -> response.statusCode() == 200 && matchesExpected(response.body(), expectedById));
+        result.write(mapper, output, name);
+        System.out.printf(Locale.ROOT, "%s: %d requests, p95 %.2f ms, %.2f requests/s%n",
+                name, result.summary().requests(), result.summary().p95Ms(), result.summary().requestsPerSecond());
+        if (repetition == 0) {
+            assertEquals(0, result.summary().failedChecks(), "Promise list warm-up response checks failed");
         }
-        System.out.println("k6 complete: " + name + (repetition == 0 ? " (warmup, excluded)" : ""));
+        return result.summary();
     }
+
+    private boolean matchesExpected(String body, Map<Long, JsonNode> expectedById) {
+        try {
+            JsonNode rows = mapper.readTree(body);
+            if (rows == null || !rows.isArray() || rows.size() != expectedById.size()) {
+                return false;
+            }
+            Set<Long> seen = new HashSet<>();
+            for (JsonNode row : rows) {
+                long id = row.path("promiseId").asLong();
+                JsonNode expectedRow = expectedById.get(id);
+                if (expectedRow == null || !seen.add(id)) {
+                    return false;
+                }
+                var fields = expectedRow.fields();
+                while (fields.hasNext()) {
+                    var field = fields.next();
+                    if (!field.getValue().equals(row.get(field.getKey()))) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        } catch (JsonProcessingException malformedResponse) {
+            return false;
+        }
+    }
+
     private void seed() {
         for (int count : List.of(10, 50, 100)) {
             SiteUser guest = user("perf-" + count);
@@ -189,10 +232,6 @@ class PromiseListPerformanceTest {
         // API has no explicit ordering contract; compare all fields by promise ID.
         assertEquals(expected.get(count).stream().collect(Collectors.toMap(PromiseListDto::getPromiseId, x -> x)),
                 actual.stream().collect(Collectors.toMap(PromiseListDto::getPromiseId, x -> x)));
-    }
-
-    private HttpClient client() {
-        return HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10)).build();
     }
 
     private HttpRequest request() {

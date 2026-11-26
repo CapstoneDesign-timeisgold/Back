@@ -59,7 +59,7 @@ tasks.register('settlementConcurrencyTest', Test) {
 
 tasks.register('settlementExperiment', Test) {
 	group = 'verification'
-	description = 'Opt-in isolated MariaDB settlement integrity/concurrency and k6 retry experiment.'
+	description = 'Opt-in isolated MariaDB settlement integrity, concurrency, and HTTP retry experiment.'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
 	useJUnitPlatform { includeTags 'settlement-experiment' }

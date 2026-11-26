@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jiki.jiki.security.JwtProvider;
 import jiki.jiki.settlement.dto.RewardDto;
+import jiki.jiki.testsupport.HttpLoad;
 import jiki.jiki.user.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.*;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.nio.file.*;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -23,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "settlement.account.initialize=false", "spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.open-in-view=false",
         "spring.jpa.show-sql=false", "spring.datasource.hikari.maximum-pool-size=10",
+        "spring.datasource.driver-class-name=org.mariadb.jdbc.Driver",
         "logging.level.root=WARN", "logging.level.org.hibernate=ERROR",
         "jwt.secret=cGVyZm9ybWFuY2UtdGVzdC1vbmx5LWtleS0zMmJ5dGVzISE=", "jwt.expiration=3600000"
 })
@@ -128,21 +134,26 @@ class SettlementExperimentTest {
         Files.writeString(out.resolve("integrity.json"), mapper.writerWithDefaultPrettyPrinter().writeValueAsString(metrics));
         if (after) assertEquals(0, inconsistentRounds);
 
+        HttpClient client = HttpLoad.client();
         for (int repetition = 1; repetition <= 3; repetition++) {
             String prefix = "retry-" + repetition;
-            Long id = tx.execute(s -> data.promise(prefix, List.of(data.user(prefix + "-late")), List.of(data.user(prefix + "-host")), 1000).getId());
-            ProcessBuilder builder = new ProcessBuilder(Objects.requireNonNull(System.getenv("PERF_K6")), "run", "--quiet", "--no-color", "--no-usage-report",
-                    "--out", "json=" + out.resolve(prefix + "-samples.json.gz"), Path.of("docs/settlement-experiment/retry.js").toAbsolutePath().toString());
-            builder.environment().put("BASE_URL", "http://127.0.0.1:" + port);
-            builder.environment().put("TOKEN", jwt.generateToken(prefix + "-host"));
-            builder.environment().put("PROMISE_ID", id.toString());
-            builder.environment().put("AFTER", String.valueOf(after));
-            builder.environment().put("SUMMARY_FILE", out.resolve(prefix + "-summary.json").toString());
-            builder.redirectErrorStream(true); builder.redirectOutput(out.resolve(prefix + "-k6.log").toFile());
-            Process child = builder.start();
-            try {
-                assertTrue(child.waitFor(90, TimeUnit.SECONDS)); assertEquals(0, child.exitValue());
-            } finally { if (child.isAlive()) child.destroyForcibly(); }
+            Long id = tx.execute(s -> data.promise(prefix, List.of(data.user(prefix + "-late")),
+                    List.of(data.user(prefix + "-host")), 1000).getId());
+            HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/settlement/reward"))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Authorization", "Bearer " + jwt.generateToken(prefix + "-host"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(new RewardDto(id))))
+                    .build();
+            HttpLoad.Result result = HttpLoad.forIterations(10, 100, Duration.ofSeconds(60), request, client,
+                    response -> response.statusCode() == 204 || response.statusCode() == 409);
+            result.write(mapper, out, prefix);
+            HttpLoad.Summary summary = result.summary();
+            assertEquals(100, summary.requests());
+            assertEquals(0, summary.failedChecks(), "Unexpected HTTP status: " + summary.statusCounts());
+            if (after) {
+                assertEquals(100, summary.statusCounts().getOrDefault(204, 0), "Every retry must return 204");
+            }
             assertEquals(9000, money(prefix + "-late")); assertEquals(11000, money(prefix + "-host"));
             long records = jdbc.queryForObject("select count(*) from money_record m join site_user u on u.id=m.user_id where u.username in (?,?)", Long.class, prefix + "-late", prefix + "-host");
             assertEquals(2, records);
