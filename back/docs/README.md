@@ -37,3 +37,16 @@
 
 - API 요청은 Nginx에서 Spring Boot로 전달하고, 웹 요청은 Nginx에서 Flutter Web 빌드 파일 제공
 - 배포 설정은 `back/deploy/nginx/`에서 관리
+
+## 실험 실행
+
+로컬 MariaDB에 실험 전용 `jiki_perf_*` 스키마와 해당 스키마에만 접근하는 계정을 준비한다. 실험은 이 스키마의 테이블을 생성하고 종료 시 삭제한다. `PERF_DB_URL`에는 `jdbc:mariadb://127.0.0.1:3306/jiki_perf_example` 형태의 주소를 넣고, `PERF_DB_USER`와 `PERF_DB_PASSWORD`를 설정한 뒤 `back/`에서 실행한다.
+
+```sh
+./gradlew performanceTest -PperfLabel=after-java -PperfSeconds=10
+./gradlew settlementExperiment -PsettlementLabel=after-java
+```
+
+- 약속 목록 실험은 SQL 횟수와 HTTP 응답 필드를 검증한다. 동시 사용자 1·10·30명별로 5초 예열 후 3회 측정한다. `docs/performance/results/<label>/`의 `runs.csv`에는 회차별 p95, p99, 처리량과 오류를, `summary.csv`에는 동시 사용자 수별 p95 중앙값·범위와 처리량 중앙값을 기록한다. 변경 전후를 비교할 때는 같은 Java 측정 조건으로 각 버전을 실행하고 요약을 비교한다.
+- 정산 실험은 금액 보존과 거래 내역을 검증하고, 동시 사용자 10명이 같은 약속에 총 100회 요청하는 실험을 3회 반복한다. `docs/settlement-experiment/results/<label>/`에 무결성 검증 결과와 HTTP 상태별 집계를 기록한다.
+- 두 실험은 회차별 JSON 요약과 압축 CSV 원본을 함께 저장한다. 실행할 때마다 새 라벨을 사용한다. Java HTTP 클라이언트와 서버가 같은 JVM에서 실행되므로 위에 기록된 기존 k6 측정과는 실행 조건이 다르다.

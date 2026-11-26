@@ -30,7 +30,7 @@
 - Java 17, Spring Boot 3.2.5
 - Spring Data JPA, Spring Security, JWT
 - MariaDB
-- JUnit, H2, k6
+- JUnit, H2
 - Nginx, Amazon EC2
 
 ## 시스템 구조

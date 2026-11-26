@@ -1,6 +1,0 @@
-# Keep k6 scenarios and their PowerShell helpers out of GitHub language statistics.
-back/docs/performance/promise-list.js -linguist-detectable
-back/docs/performance/run.ps1 -linguist-detectable
-back/docs/performance/summarize.ps1 -linguist-detectable
-back/docs/settlement-experiment/retry.js -linguist-detectable
-back/docs/settlement-experiment/run.ps1 -linguist-detectable
